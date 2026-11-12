@@ -1,5 +1,5 @@
 /* Service worker: la app funciona sin internet una vez abierta. */
-const CACHE = 'inquietos-v3';
+const CACHE = 'inquietos-v4';
 const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png',
   'fonts/archivo.woff2', 'fonts/onest.woff2', 'fonts/plexmono-500.woff2', 'fonts/plexmono-600.woff2'];

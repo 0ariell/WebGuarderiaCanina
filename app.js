@@ -806,7 +806,6 @@ function applyBrand() {
   $('#brandName').textContent = name;
   const [first, ...rest] = name.split(/\s+/);
   $('#brandWord').innerHTML = `<b>${esc(first)}</b><i>${esc(rest.join(' '))}</i>`;
-  $('#brandSub').textContent = clientMode ? 'Presupuesto' : 'Recibos';
   document.title = name;
 }
 logoReady.then((im) => { if (im) { $('#brandLogo').src = im.src; $('#brandLogo').hidden = false; $('#brandWord').hidden = true; } });
@@ -870,6 +869,23 @@ $('#fileImport').addEventListener('change', async (e) => {
 });
 function initCfgUI() { fillCfgForm(); Object.keys(EDITORS).forEach(renderEditor); }
 
+/* ======================= TEMA CLARO / OSCURO ======================= */
+const mqDark = window.matchMedia('(prefers-color-scheme: dark)');
+const isDark = () => (document.documentElement.dataset.theme || (mqDark.matches ? 'dark' : 'light')) === 'dark';
+function paintTheme() {
+  const dark = isDark();
+  $('#themeBtn').setAttribute('aria-label', dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+  $$('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', dark ? '#0f1d3d' : '#ffffff'));
+}
+$('#themeBtn').addEventListener('click', () => {
+  const next = isDark() ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('ic.theme', next); } catch { /* sin almacenamiento */ }
+  paintTheme();
+});
+if (mqDark.addEventListener) mqDark.addEventListener('change', paintTheme);
+paintTheme();
+
 /* ======================= NAVEGACIÓN / PWA ======================= */
 function showTab(name) {
   $$('#tabs button').forEach((b) => { b.classList.toggle('active', b.dataset.tab === name); b.setAttribute('aria-current', b.dataset.tab === name ? 'page' : 'false'); });
@@ -910,6 +926,9 @@ async function init() {
     initCfgUI(); renderHistory();
   }
   document.body.classList.add('on-recibo');
+  const hoy = new Date();
+  $('#todayLbl').textContent = `${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][hoy.getDay()]} ${hoy.getDate()} de ${MESES[hoy.getMonth()]}`;
+  $('#adminHead').hidden = clientMode;
   applyBrand();
   renderForm();
 }

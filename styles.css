@@ -79,14 +79,40 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 .brand { flex: 1; min-width: 0; display: flex; align-items: center; }
-#brandLogo { height: 44px; width: auto; max-width: 100%; display: block; background: #fff; border-radius: 10px; padding: 3px 6px; }
+#brandLogo { height: 50px; width: auto; max-width: 100%; display: block; }
+:root[data-theme="dark"] #brandLogo { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .85)) drop-shadow(0 0 10px rgba(93, 143, 240, .25)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #brandLogo { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .85)) drop-shadow(0 0 10px rgba(93, 143, 240, .25)); } }
+
+/* botón sol / luna */
+.themebtn {
+  width: 44px; height: 44px; flex: none; border-radius: 50%; cursor: pointer; padding: 0;
+  border: 1.5px solid var(--rule); background: var(--field); color: var(--brand);
+  display: grid; place-items: center; overflow: hidden;
+}
+.themebtn .ic { grid-area: 1 / 1; width: 21px; height: 21px; }
+.themebtn .sun { color: #e8a317; transform: translateY(26px) rotate(-90deg); opacity: 0; }
+.themebtn .moon { transform: none; opacity: 1; }
+:root[data-theme="dark"] .themebtn .moon { transform: translateY(-26px) rotate(60deg); opacity: 0; }
+:root[data-theme="dark"] .themebtn .sun { transform: none; opacity: 1; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .themebtn .moon { transform: translateY(-26px) rotate(60deg); opacity: 0; }
+  :root:not([data-theme="light"]) .themebtn .sun { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .themebtn .ic { transition: transform .4s cubic-bezier(.3, 1.4, .5, 1), opacity .2s; }
+}
+.themebtn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .wordmark { display: flex; align-items: baseline; gap: 6px; font: 900 clamp(1.05rem, 5.2vw, 1.35rem)/1 var(--f-display); font-stretch: 118%; text-transform: uppercase; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; }
 .wordmark b { color: var(--brand); font-weight: 900; position: relative; }
 .wordmark b::after { content: ""; position: absolute; right: -9px; top: -5px; width: 8px; height: 8px; border-radius: 50%; background: var(--ball); }
 .wordmark i { color: var(--accent); font-style: normal; margin-left: 6px; }
 body.client .appbar-sub { display: none; }
 .appbar-sub { margin: 0; font: 600 .7rem/1 var(--f-mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: .1em; }
-.appbar { background: color-mix(in srgb, var(--surface) 90%, transparent); }
+.appbar {
+  background: color-mix(in srgb, var(--surface) 92%, transparent); border-bottom: 0;
+  box-shadow: inset 0 -3px 0 var(--brand), inset 0 -6px 0 var(--accent);
+}
+.appbar .appbar-in { padding-block: 8px 14px; }
 body::before { background: var(--surface); }
 
 /* ---------- estructura ---------- */
@@ -102,6 +128,9 @@ body::before { background: var(--surface); }
 }
 .pagehead p, .intro p { margin: 0; color: var(--ink-2); max-width: 60ch; }
 .intro { padding: 4px 0 6px; }
+.pagehead h2, .intro h2 { color: var(--brand); }
+.pagehead .eyebrow { margin: 0 0 8px; }
+.step:focus-within .step-n { background: var(--accent); color: var(--on-accent); }
 .eyebrow { font: 600 .74rem/1 var(--f-mono) !important; text-transform: uppercase; letter-spacing: .1em; color: var(--accent) !important; margin-bottom: 10px !important; }
 
 form#form { display: grid; gap: 22px; }
