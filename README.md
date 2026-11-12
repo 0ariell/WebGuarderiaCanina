@@ -21,12 +21,12 @@ No necesita servidor, base de datos ni cuentas: todo funciona en el navegador y 
 
 ## Publicarla gratis (GitHub Pages)
 
-1. Subí estos archivos a la rama `main` del repositorio.
-2. En GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. El workflow `.github/workflows/pages.yml` la publica sola en cada cambio. La dirección queda como
-   `https://<tu-usuario>.github.io/<repositorio>/`.
+1. Entrá a https://github.com/0ariell/WebGuarderiaCanina/settings/pages
+2. En **Build and deployment → Source** elegí **Deploy from a branch**.
+3. En **Branch** elegí `main` y carpeta `/ (root)` → **Save**.
+4. En 1–2 minutos queda online en **https://0ariell.github.io/WebGuarderiaCanina/**
 
-(También sirve cualquier hosting estático: Netlify, Vercel, Cloudflare Pages… solo hay que subir la carpeta.)
+Cada cambio que se suba a `main` se publica solo.
 
 ## Instalarla en el celular
 
