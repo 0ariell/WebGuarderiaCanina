@@ -1,23 +1,29 @@
-# 🐾 Guardería Canina · Recibos y presupuestos
+# Inquietos Caninos · Presupuestos y recibos
 
-App web instalable en el celular (PWA) para armar **recibos/presupuestos en imagen PNG** de estadías, guardería diurna y paseos, y para mandarle a los clientes un **link** donde ellos mismos cargan los datos de su perro.
+App web que se instala en el celular (PWA) para armar **presupuestos y recibos en imagen PNG** de estadías, guardería y paseos, y para mandarles a los clientes un **link** donde cargan ellos mismos los datos de su perro.
 
-No necesita servidor, base de datos ni cuentas: todo funciona en el navegador y se puede usar sin internet una vez instalada.
+No necesita servidor, base de datos ni cuentas: todo funciona en el navegador y, una vez instalada, también sin internet.
 
 ## Qué hace
 
-**Para vos (cuidador/paseador)**
-- **Ajustes ya cargados** (se guardan en tu celular): nombre del negocio, WhatsApp, alias/CBU, horarios por defecto, servicios con precio por día o por noche, recargo por tamaño, extras (baño, medicación, traslado…), formas de pago con descuento (efectivo -10%, transferencia…), descuentos por estadía larga, descuento por perro adicional, % de seña y condiciones del recibo.
-- **Formulario** con lo variable: dueño/a, teléfono, uno o varios perros (nombre, raza, edad, tamaño), servicio, fechas y horarios de ingreso/retiro, días de la semana que asiste, extras, descuento especial, seña ya abonada y notas.
-- Cuenta sola los días o noches, aplica los descuentos y muestra el total por cada forma de pago (**Total transferencia / Total efectivo**) y la **reserva del 30%**.
-- **🧾 Generar recibo** → vista previa → **Descargar PNG**, **Compartir imagen** (directo a WhatsApp) o mandar el resumen en texto por WhatsApp.
-- Numeración automática (N° 0001, 0002…) e **historial** de los últimos 100 recibos para verlos o editarlos de nuevo.
-- Exportar e importar los ajustes (respaldo o pasarlos a otro celular).
+**Para vos**
+- **Ajustes cargados una sola vez** (quedan guardados en tu celular): WhatsApp, alias/CBU, horario habitual, servicios con precio por día o por noche, extras (baño, medicación, traslado…), formas de pago con descuento (efectivo −10%), descuento por estadía larga, seña y condiciones.
+- **Formulario corto**: dueño/a, perro/s, servicio y fechas en un **calendario**: tocás el día que lo traen y el día que lo retiran. Si algún día del medio no viene, lo tocás y se descuenta. Con un botón sacás los fines de semana.
+- La dirección aparece sola cuando marcás el extra de traslado.
+- Calcula días, descuentos, el **total por cada forma de pago** y la **reserva**.
+- Genera la imagen: **Presupuesto**, o **Recibo** si cargaste una seña ya cobrada. La podés compartir directo a WhatsApp o guardar.
+- Numeración automática e **historial** para volver a ver o corregir.
 
-**Para tu cliente (pestaña 🔗 Link cliente)**
-- Generás un link que ya trae tus precios y condiciones (opcionalmente también las fechas que hayas cargado).
-- El cliente lo abre, completa los datos de su perro y la estadía y obtiene su **presupuesto en PNG** para descargar o compartir, con un botón para **enviártelo a tu WhatsApp**.
-- Si cambiás los precios, generá un link nuevo: cada link guarda los precios del momento en que lo creaste.
+**Para tu cliente** (pestaña Link)
+- Le mandás un link con tus precios ya cargados. Completa los datos de su perro y las fechas, ve el presupuesto en imagen y te lo manda a tu WhatsApp con un botón.
+- Cada link guarda los precios del día en que lo creaste.
+
+## Logo
+
+Subí el logo como **`icons/logo.png`** (PNG, ideal con fondo transparente o blanco):
+https://github.com/0ariell/WebGuarderiaCanina/upload/main/icons
+
+Apenas está, la app y los recibos lo usan en lugar del nombre escrito.
 
 ## Publicarla gratis (GitHub Pages)
 

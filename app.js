@@ -1,9 +1,9 @@
-/* Guardería Canina — recibos y presupuestos (PWA sin servidor) */
+/* Inquietos Caninos — recibos y presupuestos (PWA sin servidor) */
 'use strict';
 
 /* ======================= CONFIGURACIÓN POR DEFECTO ======================= */
 const DEFAULT_CFG = {
-  negocio: 'Guardería Canina',
+  negocio: 'Inquietos Caninos',
   responsable: '',
   telefono: '',
   redes: '',
@@ -16,14 +16,10 @@ const DEFAULT_CFG = {
   horaOut: '18:00',
   servicios: [
     { nombre: 'Estadía', precio: 70000, unidad: 'dia' },
-    { nombre: 'Guardería diurna', precio: 25000, unidad: 'dia' },
+    { nombre: 'Guardería de día', precio: 25000, unidad: 'dia' },
     { nombre: 'Paseo', precio: 8000, unidad: 'dia' },
   ],
-  tamanos: [
-    { nombre: 'Pequeño', recargo: 0 },
-    { nombre: 'Mediano', recargo: 0 },
-    { nombre: 'Grande', recargo: 0 },
-  ],
+  tamanos: [],            // ej: { nombre: 'Grande', recargo: 10 } — solo si cobrás distinto por tamaño
   extras: [
     { nombre: 'Baño', precio: 15000, unidad: 'unico' },
     { nombre: 'Administración de medicación', precio: 2000, unidad: 'dia' },
@@ -50,8 +46,7 @@ const DEFAULT_CFG = {
   nextNumero: 1,
 };
 
-const WEEKDAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do']; // index 0 = lunes
-const LS_CFG = 'gc.cfg', LS_HIST = 'gc.hist', LS_DRAFT = 'gc.draft';
+const LS_CFG = 'ic.cfg', LS_HIST = 'ic.hist', LS_DRAFT = 'ic.draft';
 
 /* ======================= UTILIDADES ======================= */
 const $ = (s, r = document) => r.querySelector(s);
@@ -68,8 +63,8 @@ function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch
 
 function parseDate(s) { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return y ? new Date(y, m - 1, d) : null; }
 function fmtDate(s) { const d = parseDate(s); return d ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}` : ''; }
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 function todayStr() { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; }
-const wdIndex = (d) => (d.getDay() + 6) % 7; // lunes = 0
 
 function toast(msg) {
   const t = $('#toast'); t.textContent = msg; t.hidden = false;
@@ -128,10 +123,10 @@ function blankState() {
     dogs: [{ nombre: '', raza: '', edad: '', tamano: 0 }],
     observaciones: '',
     servicio: 0, fechaIn: '', horaIn: cfg.horaIn, fechaOut: '', horaOut: cfg.horaOut,
-    dias: [0, 1, 2, 3, 4, 5, 6], cantidad: '',
+    excluidos: [],        // días dentro del rango en que el perro no viene (YYYY-MM-DD)
     extras: {},           // idx -> cantidad (string, '' = automático)
     pago: -1,             // -1 = mostrar todas las formas de pago
-    descExtra: '', pagado: '', notas: '',
+    descExtra: '', pagado: '',
   };
 }
 let st = blankState();
@@ -139,17 +134,14 @@ let st = blankState();
 /* ======================= CÁLCULO ======================= */
 function countQty(c, s) {
   const serv = c.servicios[s.servicio] || c.servicios[0] || { unidad: 'dia' };
-  const a = parseDate(s.fechaIn), b = parseDate(s.fechaOut);
-  let auto = null;
-  if (a && b && b >= a) {
-    if (serv.unidad === 'noche') auto = Math.round((b - a) / 864e5);
-    else {
-      auto = 0;
-      for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) if (s.dias.includes(wdIndex(d))) auto++;
-    }
-  } else if (a && !b) auto = serv.unidad === 'noche' ? null : (s.dias.includes(wdIndex(a)) ? 1 : 0);
-  const manual = String(s.cantidad).trim() !== '';
-  return { auto, qty: manual ? Math.max(0, num(s.cantidad)) : (auto ?? 0), manual, unidad: serv.unidad };
+  const a = parseDate(s.fechaIn), b = parseDate(s.fechaOut) || a;
+  const exc = s.excluidos || [];
+  let qty = 0;
+  if (a && b >= a) {
+    if (serv.unidad === 'noche') qty = Math.round((b - a) / 864e5);
+    else for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) if (!exc.includes(iso(d))) qty++;
+  }
+  return { qty, unidad: serv.unidad };
 }
 
 function calc(c, s) {
@@ -209,73 +201,137 @@ function calc(c, s) {
 
 /* ======================= FORMULARIO ======================= */
 const form = $('#form');
+const icon = (id, cls = 'ic') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+
+/* confirmación propia (más linda que la del navegador) */
+function ask(msg, yes = 'Sí') {
+  return new Promise((res) => {
+    $('#confirmMsg').textContent = msg; $('#confirmYes').textContent = yes; $('#confirm').hidden = false;
+    const done = (v) => { $('#confirm').hidden = true; $('#confirmYes').onclick = $('#confirmNo').onclick = null; res(v); };
+    $('#confirmYes').onclick = () => done(true); $('#confirmNo').onclick = () => done(false);
+  });
+}
 
 function renderForm() {
-  // servicios
   const selS = $('#selServicio');
-  selS.innerHTML = cfg.servicios.map((s, i) => `<option value="${i}">${esc(s.nombre)} — ${money(num(s.precio))} por ${s.unidad === 'noche' ? 'noche' : 'día'}</option>`).join('');
+  selS.innerHTML = cfg.servicios.map((s, i) => `<option value="${i}">${esc(s.nombre)} · ${money(num(s.precio))} por ${s.unidad === 'noche' ? 'noche' : 'día'}</option>`).join('');
   if (st.servicio >= cfg.servicios.length) st.servicio = 0;
   selS.value = st.servicio;
 
-  // perros
   $('#dogsList').innerHTML = st.dogs.map((d, i) => `
     <div class="dog">
-      <div class="dog-head"><span>🐶 Perro ${i + 1}</span>${st.dogs.length > 1 ? `<button type="button" class="icon-btn" data-deldog="${i}" aria-label="Quitar perro">✕</button>` : ''}</div>
+      <div class="dog-head"><span>Perro ${i + 1}</span>${st.dogs.length > 1 ? `<button type="button" class="iconbtn del" data-deldog="${i}" aria-label="Quitar perro ${i + 1}">${icon('x')}</button>` : ''}</div>
+      <div class="field"><label for="dog${i}-n">Nombre</label><input id="dog${i}-n" data-dog="${i}" data-k="nombre" value="${esc(d.nombre)}" placeholder="Tilo"></div>
       <div class="grid2">
-        <label>Nombre *<input data-dog="${i}" data-k="nombre" value="${esc(d.nombre)}" placeholder="Ej: Tilo"></label>
-        <label>Raza<input data-dog="${i}" data-k="raza" value="${esc(d.raza)}" placeholder="Ej: Mestizo"></label>
-        <label>Edad<input data-dog="${i}" data-k="edad" value="${esc(d.edad)}" placeholder="Ej: 3 años"></label>
-        <label>Tamaño<select data-dog="${i}" data-k="tamano">${cfg.tamanos.map((t, j) => `<option value="${j}" ${+d.tamano === j ? 'selected' : ''}>${esc(t.nombre)}${num(t.recargo) ? ` (+${pctTxt(t.recargo)})` : ''}</option>`).join('')}</select></label>
+        <div class="field"><label for="dog${i}-r">Raza</label><input id="dog${i}-r" data-dog="${i}" data-k="raza" value="${esc(d.raza)}" placeholder="Mestizo"></div>
+        <div class="field"><label for="dog${i}-e">Edad</label><input id="dog${i}-e" data-dog="${i}" data-k="edad" value="${esc(d.edad)}" placeholder="3 años"></div>
       </div>
+      ${cfg.tamanos.length ? `<div class="field"><label for="dog${i}-t">Tamaño</label><select id="dog${i}-t" data-dog="${i}" data-k="tamano">${cfg.tamanos.map((t, j) => `<option value="${j}" ${+d.tamano === j ? 'selected' : ''}>${esc(t.nombre)}${num(t.recargo) ? ` (+${pctTxt(t.recargo)})` : ''}</option>`).join('')}</select></div>` : ''}
     </div>`).join('');
 
-  // días de la semana
-  $('#weekdays').innerHTML = WEEKDAYS.map((w, i) => `<button type="button" class="chip ${st.dias.includes(i) ? 'on' : ''}" data-wd="${i}">${w}</button>`).join('');
 
-  // extras
   $('#extrasList').innerHTML = cfg.extras.map((e, i) => `
-    <label class="extra">
-      <input type="checkbox" data-extra="${i}" ${i in st.extras ? 'checked' : ''}>
-      <span class="name">${esc(e.nombre)}<span class="price">${money(num(e.precio))} ${e.unidad === 'dia' ? 'por día' : 'único'}</span></span>
-      <input type="number" min="0" step="1" inputmode="numeric" data-extraq="${i}" placeholder="auto" value="${esc(st.extras[i] ?? '')}" ${i in st.extras ? '' : 'disabled'} aria-label="Cantidad">
+    <label class="extra" for="ex${i}">
+      <input type="checkbox" id="ex${i}" data-extra="${i}" ${i in st.extras ? 'checked' : ''}>
+      <span class="name">${esc(e.nombre)}<span class="price">${money(num(e.precio))} ${e.unidad === 'dia' ? 'por día' : 'una vez'}</span></span>
+      <input type="number" min="0" step="1" inputmode="numeric" data-extraq="${i}" placeholder="auto" value="${esc(st.extras[i] ?? '')}" ${i in st.extras ? '' : 'disabled'} aria-label="Cantidad de ${esc(e.nombre)}">
     </label>`).join('');
   $('#noExtras').hidden = cfg.extras.length > 0;
+  $('#extrasList').hidden = !cfg.extras.length;
 
-  // pagos
-  const opts = [{ i: -1, n: 'Todas' }, ...cfg.pagos.map((p, i) => ({ i, n: p.nombre + (num(p.descuento) ? ` (${num(p.descuento) > 0 ? '-' : '+'}${pctTxt(Math.abs(num(p.descuento)))})` : '') }))];
   if (st.pago >= cfg.pagos.length) st.pago = -1;
-  $('#pagos').innerHTML = opts.map((o) => `<button type="button" class="chip ${st.pago === o.i ? 'on' : ''}" data-pago="${o.i}">${esc(o.n)}</button>`).join('');
+  const opts = [{ i: -1, n: cfg.pagos.length > 1 ? 'Todas' : 'Total', d: 0 }, ...cfg.pagos.map((p, i) => ({ i, n: p.nombre, d: num(p.descuento) }))];
+  $('#pagos').innerHTML = opts.map((o) => `<button type="button" class="${st.pago === o.i ? 'on' : ''}" data-pago="${o.i}">${esc(o.n)}${o.d ? ` <small>${o.d > 0 ? '−' : '+'}${pctTxt(Math.abs(o.d))}</small>` : ''}</button>`).join('');
 
-  // campos simples
   for (const el of form.elements) if (el.name && el.name in st && typeof st[el.name] !== 'object') el.value = st[el.name];
-
   $('#adminPayFields').hidden = clientMode;
   updateSummary();
 }
 
+/* ---------- calendario: tocás ingreso y retiro ---------- */
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+let calView = null;
+const shortDate = (str) => { const d = parseDate(str); return `${DIAS_CORTOS[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`; };
+
+function renderCal() {
+  if (!calView) { const base = parseDate(st.fechaIn) || new Date(); calView = new Date(base.getFullYear(), base.getMonth(), 1); }
+  const y = calView.getFullYear(), m = calView.getMonth();
+  $('#calTitle').textContent = `${MESES[m]} ${y}`;
+  const A = st.fechaIn, B = st.fechaOut || '', exc = st.excluidos || [];
+  const today = iso(new Date());
+  const lead = (new Date(y, m, 1).getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate();
+  let h = '<span></span>'.repeat(lead);
+  for (let d = 1; d <= days; d++) {
+    const k = iso(new Date(y, m, d));
+    const inR = A && B && k >= A && k <= B;
+    const cls = ['day'];
+    if (k === today) cls.push('today');
+    if (k < today) cls.push('past');
+    if (k === A) cls.push('start');
+    if (k === B || (k === A && !B)) cls.push('end');
+    if (inR && k !== A && k !== B) cls.push(exc.includes(k) ? 'off' : 'mid');
+    if (inR && exc.includes(k) && (k === A || k === B)) cls.push('off');
+    h += `<button type="button" class="${cls.join(' ')}" data-day="${k}" aria-pressed="${!!(inR || k === A)}" aria-label="${d} de ${MESES[m]}">${d}</button>`;
+  }
+  $('#calGrid').innerHTML = h;
+
+  const unidad = countQty(cfg, st).unidad, q = countQty(cfg, st).qty;
+  const word = unidad === 'noche' ? (q === 1 ? 'noche' : 'noches') : (q === 1 ? 'día' : 'días');
+  let hint;
+  if (!A) hint = 'Tocá el día que lo traés.';
+  else if (!B) hint = 'Ahora tocá el día que lo retirás. Si es un solo día, tocá el mismo.';
+  else {
+    hint = `<b>${q} ${word}</b>, ${A === B ? 'el ' + shortDate(A) : `del ${shortDate(A)} al ${shortDate(B)}`}.`;
+    if (unidad !== 'noche' && A !== B) hint += ' Si algún día no viene, tocalo para sacarlo.';
+  }
+  $('#calHint').innerHTML = hint;
+  let hasWeekend = false;
+  if (A && B && unidad !== 'noche') for (let d = parseDate(A); iso(d) <= B; d.setDate(d.getDate() + 1)) if ([0, 6].includes(d.getDay()) && !exc.includes(iso(d))) { hasWeekend = true; break; }
+  $('#calWeekdays').hidden = !hasWeekend;
+  $('#calClear').hidden = !A;
+  $('#calTools').hidden = !A;
+}
+
+function pickDay(k) {
+  const A = st.fechaIn, B = st.fechaOut, unidad = countQty(cfg, st).unidad;
+  if (A && B && k > A && k < B && unidad !== 'noche') {
+    const e = st.excluidos || []; st.excluidos = e.includes(k) ? e.filter((x) => x !== k) : [...e, k];
+  } else if (A && !B) {
+    if (k < A) st.fechaIn = k; else st.fechaOut = k;
+  } else { st.fechaIn = k; st.fechaOut = ''; st.excluidos = []; }
+}
+
 function updateSummary() {
+  renderCal();
   const q = countQty(cfg, st);
-  $('#qtyLabel').textContent = q.unidad === 'noche' ? 'Cantidad de noches' : 'Cantidad de días';
-  $('#weekdaysWrap').hidden = q.unidad === 'noche';
-  $('#autoQty').textContent = q.auto != null ? `Automático: ${q.auto} ${q.unidad === 'noche' ? 'noche(s)' : 'día(s)'}${q.manual ? ' (usás el manual)' : ''}` : 'Cargá las fechas o la cantidad';
+  const unit = q.unidad === 'noche' ? ['noche', 'noches'] : ['día', 'días'];
+  const traslado = cfg.extras.some((e, i) => i in st.extras && /traslad|busc|retir|entreg/i.test(e.nombre));
+  $('#dirField').hidden = !(traslado || st.dirCliente);
 
   const r = calc(cfg, st);
-  let h = '<h2>Resumen</h2>';
-  r.dogs.forEach((d) => (h += `<div class="row"><span>${esc(d.nombre)} <span class="muted small">${esc(d.detalle)}</span></span><span>${money(d.importe)}</span></div>`));
-  r.extras.forEach((e) => (h += `<div class="row"><span>${esc(e.nombre)} <span class="muted small">${esc(e.detalle)}</span></span><span>${money(e.importe)}</span></div>`));
-  h += `<div class="row sub"><span>Subtotal</span><span>${money(r.subtotal)}</span></div>`;
-  r.descuentos.forEach((d) => (h += `<div class="row disc"><span>${esc(d.nombre)}</span><span>-${money(d.importe)}</span></div>`));
-  r.pagos.forEach((p) => (h += `<div class="row total"><span>Total ${esc(p.nombre.toLowerCase())}</span><span class="v">${money(p.total)}</span></div>`));
-  if (r.pagado) h += `<div class="row sub"><span>Abonado</span><span>${money(r.pagado)}</span></div>`;
-  else if (r.seniaPct) h += `<div class="row sub"><span>Reserva (${pctTxt(r.seniaPct)})</span><span>${money(r.senia)}</span></div>`;
-  $('#summary').innerHTML = h;
+  const best = Math.min(...r.pagos.map((p) => p.total));
+  let h = '';
+  r.dogs.forEach((d) => (h += `<div class="srow"><span class="k">${esc(d.nombre)}<small>${esc(d.detalle)}${d.notas ? ' · ' + esc(d.notas) : ''}</small></span><span class="v">${money(d.importe)}</span></div>`));
+  r.extras.forEach((e) => (h += `<div class="srow"><span class="k">${esc(e.nombre)}<small>${esc(e.detalle)}</small></span><span class="v">${money(e.importe)}</span></div>`));
+  if (r.extras.length || r.descuentos.length || r.dogs.length > 1) h += `<div class="srow dim"><span class="k">Subtotal</span><span class="v">${money(r.subtotal)}</span></div>`;
+  r.descuentos.forEach((d) => (h += `<div class="srow disc"><span class="k">${esc(d.nombre)}</span><span class="v">−${money(d.importe)}</span></div>`));
+  r.pagos.forEach((p) => (h += `<div class="srow tot ${r.pagos.length > 1 && p.total === best ? 'best' : ''}"><span class="k">${p.nombre ? esc(p.nombre) : 'Total'}${p.pct > 0 ? `<span class="tag-pct">−${pctTxt(p.pct)}</span>` : ''}</span><span class="v">${money(p.total)}</span></div>`));
+  if (r.pagado) h += `<div class="srow dim"><span class="k">Seña cobrada</span><span class="v">${money(r.pagado)}</span></div>`;
+  else if (r.seniaPct) h += `<div class="srow dim"><span class="k">Reserva ${pctTxt(r.seniaPct)}</span><span class="v">${money(r.senia)}</span></div>`;
+  $('#summary').innerHTML = r.qty ? h : '<p class="empty">Cuando cargues las fechas vas a ver acá el detalle y el total.</p>';
+
+  const bp = r.pagos.find((p) => p.total === best);
+  $('#barTotal').textContent = money(best);
+  $('#barTotalLabel').textContent = r.qty ? `${r.pagos.length > 1 && bp.nombre ? 'En ' + bp.nombre.toLowerCase() : 'Total'} · ${r.qty} ${r.qty === 1 ? unit[0] : unit[1]}` : 'Cargá las fechas';
+  if (!clientMode) $('#btnGenerar').textContent = num(st.pagado) > 0 ? 'Crear recibo' : 'Crear presupuesto';
   if (!clientMode) lsSet(LS_DRAFT, { st, currentId });
 }
 
 form.addEventListener('input', (e) => {
   const t = e.target;
   if (t.dataset.dog != null) {
-    const d = st.dogs[+t.dataset.dog]; d[t.dataset.k] = t.dataset.k === 'tamano' ? +t.value : t.value;
+    st.dogs[+t.dataset.dog][t.dataset.k] = t.dataset.k === 'tamano' ? +t.value : t.value;
   } else if (t.dataset.extra != null) {
     const i = +t.dataset.extra;
     if (t.checked) st.extras[i] = ''; else delete st.extras[i];
@@ -288,43 +344,76 @@ form.addEventListener('input', (e) => {
   updateSummary();
 });
 
-form.addEventListener('click', (e) => {
+form.addEventListener('click', async (e) => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.wd != null) {
-    const i = +b.dataset.wd;
-    st.dias = st.dias.includes(i) ? st.dias.filter((x) => x !== i) : [...st.dias, i].sort();
-    b.classList.toggle('on'); updateSummary();
+  if (b.dataset.day) {
+    pickDay(b.dataset.day); updateSummary();
+  } else if (b.id === 'calPrev' || b.id === 'calNext') {
+    calView = new Date(calView.getFullYear(), calView.getMonth() + (b.id === 'calNext' ? 1 : -1), 1); renderCal();
+  } else if (b.id === 'calWeekdays') {
+    const ex = new Set(st.excluidos || []);
+    for (let d = parseDate(st.fechaIn); iso(d) <= st.fechaOut; d.setDate(d.getDate() + 1)) if ([0, 6].includes(d.getDay())) ex.add(iso(d));
+    st.excluidos = [...ex]; updateSummary();
+  } else if (b.id === 'calClear') {
+    st.fechaIn = ''; st.fechaOut = ''; st.excluidos = []; updateSummary();
   } else if (b.dataset.pago != null) {
     st.pago = +b.dataset.pago;
-    $$('#pagos .chip').forEach((c) => c.classList.toggle('on', c === b)); updateSummary();
+    $$('#pagos button').forEach((c) => c.classList.toggle('on', c === b)); updateSummary();
   } else if (b.dataset.deldog != null) {
     st.dogs.splice(+b.dataset.deldog, 1); renderForm();
   } else if (b.id === 'btnAddDog') {
     st.dogs.push({ nombre: '', raza: '', edad: '', tamano: 0 }); renderForm();
-    $$('#dogsList .dog').pop().querySelector('input').focus();
+    $(`#dog${st.dogs.length - 1}-n`).focus();
+  } else if (b.id === 'btnReset') {
+    if (!(await ask('¿Borrar lo cargado y empezar un recibo nuevo?', 'Empezar nuevo'))) return;
+    st = blankState(); currentId = null; calView = null; renderForm(); window.scrollTo(0, 0);
   }
-});
-
-$('#btnReset').addEventListener('click', () => {
-  if (!confirm('¿Limpiar el formulario?')) return;
-  st = blankState(); currentId = null; renderForm(); window.scrollTo(0, 0);
 });
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (!st.cliente.trim()) return focusErr('cliente', 'Falta el nombre del dueño/a');
-  if (!st.dogs.some((d) => d.nombre.trim())) return focusErr(null, 'Falta el nombre del perro', '[data-dog="0"][data-k="nombre"]');
-  if (!countQty(cfg, st).qty) return focusErr('fechaIn', 'Cargá las fechas o la cantidad de días');
+  if (!st.cliente.trim()) return focusErr('#f-cliente', 'Falta el nombre del dueño o dueña.');
+  if (!st.dogs.some((d) => d.nombre.trim())) return focusErr('#dog0-n', 'Falta el nombre del perro.');
+  if (!st.fechaIn) return focusErr('#cal', 'Elegí en el calendario el día que lo traés.');
+  if (!countQty(cfg, st).qty) return focusErr('#cal', 'Elegí el día que lo retirás.');
   await generate();
 });
-function focusErr(name, msg, sel) {
-  toast(msg); const el = sel ? $(sel) : form.elements[name];
-  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => el.focus(), 300); }
+function focusErr(sel, msg) {
+  toast(msg); const el = $(sel);
+  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => el.focus({ preventScroll: true }), 350); }
 }
 
 /* ======================= RECIBO (CANVAS → PNG) ======================= */
-const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-const C = { text: '#1d1b26', muted: '#6b6878', line: '#e8e6ee', card: '#eeeef4', green: '#1f8a4c', greenSoft: '#e6f4ea', primary: '#7c4dff' };
+const RC = {
+  bg: '#e3edf6', paper: '#ffffff', ink: '#0f2a5c', ink2: '#4b6183', ink3: '#8496ae', rule: '#d9e4ef',
+  brand: '#1d4fa6', accent: '#13a6cb', sky: '#eaf5fb', go: '#1e8a55', field: '#f1f6fb', ball: '#e3262b',
+};
+/* logo: si existe icons/logo.png se usa en la app y en el recibo */
+let logoImg = null;
+const logoReady = new Promise((res) => {
+  const im = new Image();
+  im.onload = () => { logoImg = im; res(im); };
+  im.onerror = () => res(null);
+  im.src = 'icons/logo.png?v=1';
+});
+const F = {
+  disp: (w, px, stretch = 'semi-expanded') => `${w} ${stretch} ${px}px Archivo, "Arial Narrow", sans-serif`,
+  body: (w, px) => `${w} ${px}px Onest, system-ui, sans-serif`,
+  mono: (w, px) => `${w} ${px}px "Plex Mono", ui-monospace, monospace`,
+};
+const DOW = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+const MON = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+
+async function fontsReady() {
+  if (!document.fonts) return;
+  try {
+    await Promise.all([
+      document.fonts.load('800 40px Archivo'), document.fonts.load('900 40px Archivo'),
+      document.fonts.load('400 20px Onest'), document.fonts.load('600 20px Onest'),
+      document.fonts.load('500 20px "Plex Mono"'), document.fonts.load('600 20px "Plex Mono"'),
+    ]);
+  } catch { /* usa las de respaldo */ }
+}
 
 function rr(ctx, x, y, w, h, r) {
   ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
@@ -334,7 +423,7 @@ function wrap(ctx, text, maxW) {
   const out = [];
   String(text ?? '').split('\n').forEach((para) => {
     const words = para.split(/\s+/).filter(Boolean); let line = '';
-    if (!words.length) { out.push(''); return; }
+    if (!words.length) return;
     for (const w of words) {
       const test = line ? line + ' ' + w : w;
       if (ctx.measureText(test).width > maxW && line) { out.push(line); line = w; } else line = test;
@@ -343,211 +432,255 @@ function wrap(ctx, text, maxW) {
   });
   return out;
 }
+function fit(ctx, text, maxW, fontFn, start, min) {
+  let px = start; ctx.font = fontFn(px);
+  while (px > min && ctx.measureText(text).width > maxW) { px -= 2; ctx.font = fontFn(px); }
+  return px;
+}
+function paw(ctx, cx, cy, s, color) {
+  ctx.fillStyle = color;
+  const el = (x, y, rx, ry, rot) => { ctx.beginPath(); ctx.ellipse(cx + x * s, cy + y * s, rx * s, ry * s, rot, 0, Math.PI * 2); ctx.fill(); };
+  el(0, 4.2, 4.6, 3.9, 0); el(-6.7, -1.4, 2, 2.6, -0.31); el(-2.8, -5.6, 2, 2.7, -0.1); el(2.8, -5.6, 2, 2.7, 0.1); el(6.7, -1.4, 2, 2.6, 0.31);
+}
 
 function drawReceipt(data) {
   const { c, s, r, numero, fecha, tipo } = data;
-  const W = 1080, P = 72, CW = W - P * 2;
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = 6000;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, canvas.height);
-  ctx.textBaseline = 'alphabetic';
-  const font = (w, px) => (ctx.font = `${w} ${px}px ${FONT}`);
-  let y = 0;
-
-  // Encabezado
-  const headH = 230;
-  const grad = ctx.createLinearGradient(0, 0, W, headH);
-  grad.addColorStop(0, '#7c4dff'); grad.addColorStop(1, '#a378ff');
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, headH);
-  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(P + 40, 115, 50, 0, Math.PI * 2); ctx.fill();
-  font('400', 54); ctx.textAlign = 'center'; ctx.fillText('🐾', P + 40, 134); ctx.textAlign = 'left';
-  ctx.fillStyle = '#fff'; font('800', 52);
-  const bn = wrap(ctx, c.negocio || 'Guardería Canina', CW - 330)[0];
-  ctx.fillText(bn, P + 110, 118);
-  font('500', 30); ctx.fillStyle = 'rgba(255,255,255,.88)';
-  ctx.fillText(tipo === 'presupuesto' ? 'Presupuesto' : 'Recibo / Presupuesto', P + 110, 162);
-  ctx.textAlign = 'right'; font('700', 32); ctx.fillStyle = '#fff';
-  ctx.fillText(numero, W - P, 112);
-  font('500', 28); ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.fillText(fecha, W - P, 156);
-  ctx.textAlign = 'left';
-  y = headH + 30;
-
-  // Filas etiqueta / valor
-  const row = (label, value, opts = {}) => {
-    if (value == null || value === '') return;
-    font('400', 34); const lw = Math.max(ctx.measureText(label).width + 30, 240);
-    font(opts.bold === false ? '500' : '700', 36);
-    const lines = wrap(ctx, value, CW - lw);
-    const h = 40 + lines.length * 46 + 20;
-    font('400', 34); ctx.fillStyle = C.muted; ctx.fillText(label, P, y + 62);
-    font(opts.bold === false ? '500' : '700', 36); ctx.fillStyle = C.text; ctx.textAlign = 'right';
-    lines.forEach((ln, i) => ctx.fillText(ln, W - P, y + 64 + i * 46));
-    ctx.textAlign = 'left';
-    y += h;
-    ctx.fillStyle = C.line; ctx.fillRect(P, y, CW, 2);
+  const W = 1080, M = 40, CX = M, CW = W - M * 2, P = CX + 56, IW = CW - 112, R = W - P;
+  const layer = document.createElement('canvas'); layer.width = W; layer.height = 7000;
+  const ctx = layer.getContext('2d');
+  const spacing = (v) => { if ('letterSpacing' in ctx) ctx.letterSpacing = v; };
+  const text = (t, x, y, font, color, align = 'left', ls = '0px') => {
+    ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; spacing(ls); ctx.fillText(t, x, y); spacing('0px'); ctx.textAlign = 'left';
   };
+  const hr = (yy, dashed) => {
+    ctx.strokeStyle = RC.rule; ctx.lineWidth = 2; ctx.setLineDash(dashed ? [10, 8] : []);
+    ctx.beginPath(); ctx.moveTo(P, yy); ctx.lineTo(R, yy); ctx.stroke(); ctx.setLineDash([]);
+  };
+  let y = M;
 
-  row('Cliente', s.cliente);
-  row('Teléfono', s.telCliente, { bold: false });
-  if (s.dirCliente) row('Dirección', s.dirCliente, { bold: false });
-  row('Servicio', r.serv.nombre);
-  const dIn = fmtDate(s.fechaIn), dOut = fmtDate(s.fechaOut);
-  row(r.unidad === 'noche' || dOut ? 'Estadía' : 'Fecha', dIn && dOut ? `${dIn} → ${dOut}` : dIn || dOut);
-  if (s.horaIn || s.horaOut) row('Horario', `${s.horaIn || '--:--'} – ${s.horaOut || '--:--'}`);
-  if (r.unidad !== 'noche' && s.dias.length < 7) row('Días', s.dias.map((i) => WEEKDAYS[i]).join(', '), { bold: false });
-  row(r.unidad === 'noche' ? 'Cantidad de noches' : 'Cantidad de días', String(r.qty));
+  /* --- cabecera: logo sobre celeste --- */
+  const headH = 230;
+  ctx.save(); rr(ctx, CX, y, CW, headH + 30, 28); ctx.clip();
+  ctx.fillStyle = RC.sky; ctx.fillRect(CX, y, CW, headH);
+  ctx.fillStyle = RC.brand; ctx.fillRect(CX, y + headH - 10, CW, 10);
+  ctx.fillStyle = RC.accent; ctx.fillRect(CX, y + headH - 16, CW, 6);
+  ctx.restore();
+  const metaW = 250;
+  if (logoImg) {
+    const maxH = 170, maxW = IW - metaW - 30;
+    const sc = Math.min(maxH / logoImg.height, maxW / logoImg.width);
+    const lw = logoImg.width * sc, lh = logoImg.height * sc;
+    ctx.drawImage(logoImg, P - 10, y + (headH - 16 - lh) / 2, lw, lh);
+  } else {
+    const words = String(c.negocio || 'Inquietos Caninos').toUpperCase().split(/\s+/);
+    const first = words.shift(), rest = words.join(' ');
+    const wpx = fit(ctx, first, IW - metaW - 40, (px) => F.disp(900, px, 'expanded'), 76, 40);
+    text(first, P, y + 104, F.disp(900, wpx, 'expanded'), RC.brand);
+    if (rest) text(rest, P, y + 104 + wpx * 0.92, F.disp(900, wpx, 'expanded'), RC.accent);
+    ctx.font = F.disp(900, wpx, 'expanded');
+    ctx.fillStyle = RC.ball; ctx.beginPath(); ctx.arc(P + ctx.measureText(first).width + 22, y + 104 - wpx * 0.62, wpx * 0.14, 0, Math.PI * 2); ctx.fill();
+  }
+  const my = y + (headH - 16) / 2;
+  text(tipo === 'presupuesto' ? 'PRESUPUESTO' : 'RECIBO', R, my - 34, F.mono(600, 24), RC.accent, 'right', '3px');
+  text(numero, R, my + 6, F.mono(600, 32), RC.ink, 'right');
+  text(fecha, R, my + 44, F.mono(500, 24), RC.ink2, 'right');
+  y += headH + 64;
+
+  /* --- protagonista: el perro --- */
+  const names = r.dogs.map((d) => d.nombre.toUpperCase());
+  const hero = names.length > 2 ? names.slice(0, -1).join(', ') + ' Y ' + names.at(-1) : names.join(' Y ');
+  let hpx = 132; ctx.font = F.disp(900, hpx, 'expanded');
+  while (hpx > 70 && ctx.measureText(hero).width > IW) { hpx -= 4; ctx.font = F.disp(900, hpx, 'expanded'); }
+  const heroLines = wrap(ctx, hero, IW);
+  heroLines.forEach((ln, i) => text(ln, P - 4, y + hpx * 0.78 + i * hpx * 0.96, F.disp(900, hpx, 'expanded'), RC.brand));
+  y += hpx * 0.78 + (heroLines.length - 1) * hpx * 0.96 + 26;
+  const dogInfo = s.dogs.map((d) => [d.raza, d.edad].filter(Boolean).join(', ')).filter(Boolean).join(' · ');
+  const tagline = [r.serv.nombre.toUpperCase(), `${r.qty} ${r.qty === 1 ? (r.unidad === 'noche' ? 'NOCHE' : 'DÍA') : r.uPlur.toUpperCase()}`].join('  ·  ');
+  text(tagline, P, y + 32, F.mono(600, 28), RC.accent, 'left', '2px');
+  y += 44;
+  if (dogInfo) { ctx.font = F.body(400, 28); wrap(ctx, dogInfo, IW).forEach((ln) => { text(ln, P, y + 36, F.body(400, 28), RC.ink3); y += 40; }); }
   y += 40;
 
-  // Tarjetas por perro / extras
-  const card = (title, sub, extra, amount, upper) => {
-    font('700', 38); const tl = wrap(ctx, upper ? title.toUpperCase() : title, CW - 300);
-    const subLines = [sub, extra].filter(Boolean);
-    const h = 44 + tl.length * 46 + subLines.length * 42 + 38;
-    ctx.fillStyle = C.card; rr(ctx, P, y, CW, h, 34); ctx.fill();
-    ctx.fillStyle = C.text; tl.forEach((ln, i) => ctx.fillText(ln, P + 46, y + 84 + i * 46));
-    let yy = y + 84 + (tl.length - 1) * 46;
-    font('400', 32); ctx.fillStyle = C.muted;
-    subLines.forEach((ln) => { yy += 44; ctx.fillText(ln, P + 46, yy); });
-    font('700', 38); ctx.fillStyle = C.text; ctx.textAlign = 'right'; ctx.fillText(money(amount), W - P - 46, y + 84); ctx.textAlign = 'left';
-    y += h + 22;
+  /* --- pase de ingreso / retiro --- */
+  const dateBlock = (x, w, label, ds, hs) => {
+    text(label, x + 32, y + 54, F.mono(600, 22), RC.ink2, 'left', '3px');
+    const d = parseDate(ds);
+    if (d) {
+      const dt = `${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`;
+      const dpx = fit(ctx, dt, w - 80, (px) => F.disp(800, px), 58, 30);
+      text(dt, x + 30, y + 128, F.disp(800, dpx), RC.ink);
+      text(`${d.getFullYear()}${hs ? '  ·  ' + hs + ' HS' : ''}`, x + 32, y + 172, F.mono(500, 26), RC.ink2);
+    } else text('—', x + 30, y + 128, F.disp(800, 58), RC.ink3);
   };
-  r.dogs.forEach((d, i) => {
-    const dg = s.dogs[i] || {};
-    const tam = c.tamanos.some((t) => num(t.recargo)) ? (c.tamanos[dg.tamano] || {}).nombre : '';
-    const info = [dg.raza, dg.edad, tam].filter(Boolean).join(' · ');
-    card(d.nombre, d.detalle, [info, d.notas].filter(Boolean).join(' · '), d.importe, true);
-  });
-  r.extras.forEach((e) => card(e.nombre, e.detalle, '', e.importe, false));
-  y += 18;
-
-  // Subtotal y descuentos
-  const line2 = (label, value, color, weight = '500', px = 36) => {
-    font('400', px); ctx.fillStyle = color || C.muted;
-    const lines = wrap(ctx, label, CW - 280);
-    lines.forEach((ln, i) => ctx.fillText(ln, P + 6, y + 50 + i * 44));
-    font(weight, px); ctx.fillStyle = color || C.text; ctx.textAlign = 'right'; ctx.fillText(value, W - P - 6, y + 50); ctx.textAlign = 'left';
-    y += 40 + lines.length * 44;
-  };
-  line2('Subtotal', money(r.subtotal), null, '700');
-  r.descuentos.forEach((d) => line2(d.nombre, '-' + money(d.importe), C.green, '700'));
-  y += 14; ctx.fillStyle = C.line; ctx.fillRect(P, y, CW, 2); y += 18;
-
-  // Totales por forma de pago
-  const base = r.pagos.reduce((m, p) => Math.min(m, p.pct), Infinity);
-  r.pagos.forEach((p) => {
-    const label = p.nombre ? `Total ${p.nombre.toLowerCase()}` : 'Total';
-    font('800', 44); ctx.fillStyle = C.text; ctx.fillText(label, P + 6, y + 70);
-    const lw = ctx.measureText(label).width;
-    const diff = p.pct - (r.pagos.length > 1 ? base : 0);
-    if (diff) {
-      font('500', 30); ctx.fillStyle = C.muted;
-      const t = diff > 0 ? ` (${pctTxt(diff)} menos)` : ` (${pctTxt(-diff)} más)`;
-      if (lw + ctx.measureText(t).width < CW - 330) ctx.fillText(t, P + 6 + lw, y + 70);
+  const passH = 210;
+  if (s.fechaIn || s.fechaOut) {
+    ctx.fillStyle = RC.sky; rr(ctx, P, y, IW, passH, 22); ctx.fill();
+    if (s.fechaOut && s.fechaOut !== s.fechaIn) {
+      dateBlock(P, IW / 2, 'INGRESO', s.fechaIn, s.horaIn);
+      dateBlock(P + IW / 2 + 10, IW / 2 - 10, 'RETIRO', s.fechaOut, s.horaOut);
+      ctx.strokeStyle = RC.rule; ctx.lineWidth = 3; ctx.setLineDash([10, 9]);
+      ctx.beginPath(); ctx.moveTo(P + IW / 2, y + 28); ctx.lineTo(P + IW / 2, y + passH - 28); ctx.stroke(); ctx.setLineDash([]);
+      // flecha
+      ctx.fillStyle = RC.paper; ctx.beginPath(); ctx.arc(P + IW / 2, y + passH / 2, 26, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = RC.brand; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(P + IW / 2 - 10, y + passH / 2); ctx.lineTo(P + IW / 2 + 10, y + passH / 2);
+      ctx.moveTo(P + IW / 2 + 2, y + passH / 2 - 8); ctx.lineTo(P + IW / 2 + 10, y + passH / 2); ctx.lineTo(P + IW / 2 + 2, y + passH / 2 + 8); ctx.stroke();
+    } else {
+      dateBlock(P, IW, 'FECHA', s.fechaIn || s.fechaOut, [s.horaIn, s.horaOut].filter(Boolean).join(' A '));
     }
-    font('800', 60); ctx.fillStyle = C.green; ctx.textAlign = 'right'; ctx.fillText(money(p.total), W - P - 6, y + 74); ctx.textAlign = 'left';
-    y += 108;
+    y += passH + 36;
+  }
+
+  /* --- datos del cliente --- */
+  const facts = [['CLIENTE', s.cliente], ['WHATSAPP', s.telCliente], ['DIRECCIÓN', s.dirCliente]];
+  const exc = (s.excluidos || []).filter((k) => k > s.fechaIn && k < (s.fechaOut || '')).sort();
+  if (r.unidad !== 'noche' && exc.length) facts.push(['NO VIENE', exc.map(shortDate).join(', ')]);
+  facts.filter((f) => f[1]).forEach(([k, v]) => {
+    ctx.font = F.body(600, 30); const lines = wrap(ctx, v, IW - 230);
+    text(k, P, y + 38, F.mono(600, 22), RC.ink3, 'left', '2px');
+    lines.forEach((ln, i) => text(ln, R, y + 40 + i * 40, F.body(600, 30), RC.ink, 'right'));
+    y += 24 + lines.length * 40 + 12; hr(y);
   });
-  y += 20;
+  y += 34;
 
-  // Recuadro reserva / seña
-  const box = (title, big, sub) => {
-    font('400', 32); const subLines = sub ? wrap(ctx, sub, CW - 92) : [];
-    const h = 64 + 66 + subLines.length * 42 + 44;
-    ctx.fillStyle = C.greenSoft; rr(ctx, P, y, CW, h, 34); ctx.fill();
-    font('700', 30); ctx.fillStyle = C.green;
-    ctx.save(); if ('letterSpacing' in ctx) ctx.letterSpacing = '2px'; ctx.fillText(title.toUpperCase(), P + 46, y + 70); ctx.restore();
-    font('800', 46); ctx.fillStyle = C.text; ctx.fillText(big, P + 46, y + 132);
-    font('400', 32); ctx.fillStyle = C.muted; subLines.forEach((ln, i) => ctx.fillText(ln, P + 46, y + 182 + i * 42));
-    y += h + 30;
+  /* --- detalle --- */
+  text('DETALLE', P, y + 22, F.mono(600, 22), RC.ink3, 'left', '2px');
+  text('IMPORTE', R, y + 22, F.mono(600, 22), RC.ink3, 'right', '2px');
+  y += 42;
+  const item = (name, detail, amount) => {
+    ctx.font = F.body(600, 34); const lines = wrap(ctx, name, IW - 260);
+    lines.forEach((ln, i) => text(ln, P, y + 46 + i * 42, F.body(600, 34), RC.ink));
+    text(money(amount), R, y + 46, F.body(600, 34), RC.ink, 'right');
+    let yy = y + 46 + (lines.length - 1) * 42;
+    if (detail) { ctx.font = F.mono(500, 25); wrap(ctx, detail, IW - 260).forEach((ln) => { yy += 38; text(ln, P, yy, F.mono(500, 25), RC.ink2); }); }
+    y = yy + 26; hr(y);
   };
-  if (r.pagado > 0) {
-    const saldos = r.pagos.map((p) => `${p.nombre ? p.nombre + ': ' : ''}${money(Math.max(0, p.total - r.pagado))}`).join('  ·  ');
-    box('Seña abonada', money(r.pagado), `Saldo a pagar — ${saldos}`);
-  } else if (r.seniaPct > 0) {
-    box(`Reserva para confirmar (${pctTxt(r.seniaPct)})`, money(r.senia), 'El resto se cancela al ingreso');
-  }
-
-  // Datos bancarios
-  const bank = [['Alias', c.alias], ['CBU/CVU', c.cbu], ['Titular', c.titular], ['Banco', c.banco]].filter((x) => x[1]);
-  if (bank.length) {
-    const h = 86 + bank.length * 50 + 24;
-    ctx.strokeStyle = C.line; ctx.lineWidth = 3; rr(ctx, P, y, CW, h, 34); ctx.stroke();
-    font('700', 30); ctx.fillStyle = C.primary; ctx.fillText('DATOS PARA TRANSFERENCIA', P + 46, y + 66);
-    bank.forEach(([k, v], i) => {
-      font('400', 32); ctx.fillStyle = C.muted; ctx.fillText(k, P + 46, y + 120 + i * 50);
-      font('700', 32); ctx.fillStyle = C.text; ctx.textAlign = 'right'; ctx.fillText(v, W - P - 46, y + 120 + i * 50); ctx.textAlign = 'left';
-    });
-    y += h + 30;
-  }
-
-  // Observaciones y notas
-  const para = (title, text) => {
-    if (!String(text || '').trim()) return;
-    font('700', 30); ctx.fillStyle = C.muted; ctx.fillText(title.toUpperCase(), P, y + 40);
-    font('400', 32); ctx.fillStyle = C.text;
-    const lines = wrap(ctx, text, CW); lines.forEach((ln, i) => ctx.fillText(ln, P, y + 88 + i * 44));
-    y += 88 + lines.length * 44 + 10;
+  hr(y);
+  r.dogs.forEach((d) => item(d.nombre, [d.detalle, d.notas].filter(Boolean).join(' · '), d.importe));
+  r.extras.forEach((e) => item(e.nombre, e.detalle, e.importe));
+  const line = (k, v, color, weight = 500) => {
+    text(k, P, y + 46, F.body(weight, 30), color); text(v, R, y + 46, F.body(600, 30), color, 'right'); y += 58;
   };
-  para('Observaciones', s.observaciones);
-  para('Notas', s.notas);
+  y += 8;
+  if (r.extras.length || r.descuentos.length || r.dogs.length > 1) line('Subtotal', money(r.subtotal), RC.ink2);
+  r.descuentos.forEach((d) => line(d.nombre, '−' + money(d.importe), RC.go, 600));
+  y += 24;
 
-  // Condiciones con ✔
+  /* --- totales por forma de pago --- */
+  const pagos = r.pagos;
+  const best = Math.min(...pagos.map((p) => p.total));
+  const cols = pagos.length >= 2 ? 2 : 1, gap = 20, tw = (IW - gap * (cols - 1)) / cols, th = 176;
+  pagos.forEach((p, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const x = P + col * (tw + gap), yy = y + row * (th + gap);
+    const hi = pagos.length === 1 || p.total === best;
+    ctx.fillStyle = hi ? RC.brand : RC.paper; rr(ctx, x, yy, tw, th, 22); ctx.fill();
+    if (!hi) { ctx.strokeStyle = RC.brand; ctx.lineWidth = 3; rr(ctx, x + 1.5, yy + 1.5, tw - 3, th - 3, 21); ctx.stroke(); }
+    const fg = hi ? '#ffffff' : RC.brand;
+    text((p.nombre ? 'TOTAL ' + p.nombre : 'TOTAL').toUpperCase(), x + 30, yy + 50, F.mono(600, 22), hi ? '#cfe0ff' : RC.ink2, 'left', '2px');
+    const amt = money(p.total); const apx = fit(ctx, amt, tw - 60, (px) => F.disp(900, px), cols === 1 ? 84 : 66, 40);
+    text(amt, x + 28, yy + 50 + apx + 6, F.disp(900, apx), fg);
+    if (p.pct) {
+      const t = p.pct > 0 ? `${pctTxt(p.pct)} MENOS` : `${pctTxt(-p.pct)} MÁS`;
+      ctx.font = F.mono(600, 22); const tw2 = ctx.measureText(t).width + 24;
+      ctx.fillStyle = hi ? RC.ball : RC.go; rr(ctx, x + tw - 26 - tw2, yy + 24, tw2, 38, 19); ctx.fill();
+      text(t, x + tw - 26 - tw2 / 2, yy + 50, F.mono(600, 22), '#ffffff', 'center');
+    }
+  });
+  y += Math.ceil(pagos.length / cols) * (th + gap) + 20;
+
+  /* --- notas y condiciones --- */
+  const para = (title, body) => {
+    if (!String(body || '').trim()) return;
+    text(title, P, y + 30, F.mono(600, 22), RC.ink3, 'left', '2px'); y += 44;
+    ctx.font = F.body(400, 29); wrap(ctx, body, IW).forEach((ln) => { text(ln, P, y + 32, F.body(400, 29), RC.ink); y += 40; });
+    y += 22;
+  };
+  para('OBSERVACIONES', s.observaciones);
   const conds = String(c.condiciones || '').split('\n').map((x) => x.trim()).filter(Boolean);
   if (conds.length) {
-    ctx.fillStyle = C.line; ctx.fillRect(P, y + 10, CW, 2); y += 40;
+    y += 6; text('CONDICIONES', P, y + 30, F.mono(600, 22), RC.ink3, 'left', '2px'); y += 52;
     conds.forEach((cond) => {
-      font('400', 34); const lines = wrap(ctx, cond, CW - 70);
-      ctx.strokeStyle = C.text; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.beginPath(); ctx.moveTo(P + 2, y + 36); ctx.lineTo(P + 13, y + 50); ctx.lineTo(P + 36, y + 20); ctx.stroke();
-      ctx.fillStyle = C.text; lines.forEach((ln, i) => ctx.fillText(ln, P + 70, y + 48 + i * 50));
-      y += lines.length * 50 + 30;
+      ctx.font = F.body(400, 28); const lines = wrap(ctx, cond, IW - 56);
+      ctx.strokeStyle = RC.accent; ctx.lineWidth = 4.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(P + 2, y + 18); ctx.lineTo(P + 11, y + 28); ctx.lineTo(P + 29, y + 6); ctx.stroke();
+      lines.forEach((ln, i) => text(ln, P + 52, y + 30 + i * 39, F.body(400, 28), RC.ink));
+      y += lines.length * 39 + 20;
     });
   }
+  if (num(c.validez) > 0 && tipo === 'presupuesto') { text(`Presupuesto válido por ${num(c.validez)} días desde el ${fecha}.`, P, y + 30, F.body(400, 25), RC.ink3); y += 50; }
+  y += 30;
 
-  // Pie
-  y += 20;
-  const foot = [c.responsable, c.telefono && `WhatsApp ${c.telefono}`, c.redes, c.direccion].filter(Boolean).join('  ·  ');
-  if (num(c.validez) > 0 && tipo === 'presupuesto') {
-    font('500', 28); ctx.fillStyle = C.muted; ctx.textAlign = 'center';
-    ctx.fillText(`Presupuesto válido por ${num(c.validez)} días`, W / 2, y + 30); ctx.textAlign = 'left'; y += 50;
+  /* --- talón troquelado: reserva y transferencia --- */
+  const perfY = y; y += 56;
+  if (r.pagado > 0) {
+    text('SEÑA ABONADA', P, y + 26, F.mono(600, 22), RC.go, 'left', '3px');
+    text(money(r.pagado), P - 2, y + 108, F.disp(900, 76), RC.ink);
+    y += 128;
+    const saldos = r.pagos.map((p) => `${p.nombre ? p.nombre + ' ' : ''}${money(Math.max(0, p.total - r.pagado))}`).join('  ·  ');
+    ctx.font = F.body(400, 28); wrap(ctx, `Saldo al ingreso: ${saldos}`, IW).forEach((ln) => { text(ln, P, y + 30, F.body(400, 28), RC.ink2); y += 40; });
+  } else if (r.seniaPct > 0) {
+    text(`RESERVA PARA CONFIRMAR · ${pctTxt(r.seniaPct)}`, P, y + 26, F.mono(600, 22), RC.accent, 'left', '3px');
+    text(money(r.senia), P - 2, y + 108, F.disp(900, 76), RC.brand);
+    text('El resto se abona al ingreso.', P, y + 152, F.body(400, 28), RC.ink2);
+    y += 176;
   }
-  if (foot) {
-    font('500', 28); ctx.fillStyle = C.muted; ctx.textAlign = 'center';
-    wrap(ctx, foot, CW).forEach((ln, i) => ctx.fillText(ln, W / 2, y + 30 + i * 40)); ctx.textAlign = 'left';
-    y += 30 + wrap(ctx, foot, CW).length * 40;
+  const bank = [['ALIAS', c.alias], ['CBU/CVU', c.cbu], ['TITULAR', c.titular], ['BANCO', c.banco]].filter((x) => x[1]);
+  if (bank.length) {
+    y += 22;
+    const bh = 34 + bank.length * 50 + 14;
+    ctx.fillStyle = RC.field; rr(ctx, P, y, IW, bh, 18); ctx.fill();
+    bank.forEach(([k, v], i) => {
+      text(k, P + 28, y + 62 + i * 50, F.mono(600, 22), RC.ink3, 'left', '2px');
+      const vpx = fit(ctx, v, IW - 230, (px) => F.mono(600, px), 30, 20);
+      text(v, R - 28, y + 63 + i * 50, F.mono(600, vpx), RC.ink, 'right');
+    });
+    y += bh;
   }
-  font('600', 30); ctx.fillStyle = C.primary; ctx.textAlign = 'center'; ctx.fillText('¡Gracias por confiarnos a tu cuatro patas! 🐶', W / 2, y + 40); ctx.textAlign = 'left';
-  y += 90;
+  const foot = [c.telefono && `WhatsApp ${c.telefono}`, c.direccion].filter(Boolean).join('  ·  ');
+  y += 40;
+  if (foot) { ctx.font = F.body(500, 25); wrap(ctx, foot, IW).forEach((ln) => { text(ln, W / 2, y + 26, F.body(500, 25), RC.ink2, 'center'); y += 36; }); }
+  y += 24;
+  const cardBottom = y;
+  const H = Math.ceil(cardBottom + M);
 
-  // Recorte a la altura usada
-  const out = document.createElement('canvas'); out.width = W; out.height = Math.ceil(y);
-  out.getContext('2d').drawImage(canvas, 0, 0);
+  /* --- composición final: fondo, papel con muescas, contenido --- */
+  const out = document.createElement('canvas'); out.width = W; out.height = H;
+  const o = out.getContext('2d');
+  o.fillStyle = RC.bg; o.fillRect(0, 0, W, H);
+  o.save(); o.shadowColor = 'rgba(15,42,92,.12)'; o.shadowBlur = 30; o.shadowOffsetY = 8;
+  o.fillStyle = RC.paper; rr(o, CX, M, CW, cardBottom - M, 28); o.fill(); o.restore();
+  o.fillStyle = RC.bg;
+  o.beginPath(); o.arc(CX, perfY, 26, 0, Math.PI * 2); o.fill();
+  o.beginPath(); o.arc(CX + CW, perfY, 26, 0, Math.PI * 2); o.fill();
+  o.strokeStyle = RC.rule; o.lineWidth = 3; o.setLineDash([3, 12]); o.lineCap = 'round';
+  o.beginPath(); o.moveTo(CX + 40, perfY); o.lineTo(CX + CW - 40, perfY); o.stroke(); o.setLineDash([]);
+  o.drawImage(layer, 0, 0);
   return out;
 }
 
 function summaryText(data) {
   const { c, s, r, numero } = data;
   const L = [];
-  L.push(`🐾 *${c.negocio}* — ${numero}`);
-  L.push(`👤 ${s.cliente}${s.telCliente ? ' (' + s.telCliente + ')' : ''}`);
-  L.push(`🐶 ${r.dogs.map((d) => d.nombre).join(', ')}`);
-  L.push(`📋 ${r.serv.nombre}`);
-  if (s.fechaIn || s.fechaOut) L.push(`📅 ${[fmtDate(s.fechaIn), fmtDate(s.fechaOut)].filter(Boolean).join(' → ')}`);
-  if (s.horaIn || s.horaOut) L.push(`🕘 ${s.horaIn} – ${s.horaOut}`);
-  L.push(`🔢 ${r.qty} ${r.uPlur}`);
-  r.extras.forEach((e) => L.push(`➕ ${e.nombre}: ${money(e.importe)}`));
-  r.descuentos.forEach((d) => L.push(`🎁 ${d.nombre}: -${money(d.importe)}`));
-  r.pagos.forEach((p) => L.push(`💰 Total${p.nombre ? ' ' + p.nombre.toLowerCase() : ''}: *${money(p.total)}*`));
-  if (r.pagado) L.push(`✅ Seña abonada: ${money(r.pagado)}`);
-  else if (r.seniaPct) L.push(`📌 Reserva (${pctTxt(r.seniaPct)}): ${money(r.senia)}`);
-  if (s.observaciones) L.push(`📝 ${s.observaciones}`);
+  L.push(`*${c.negocio}* · ${numero}`);
+  L.push(`Cliente: ${s.cliente}${s.telCliente ? ' (' + s.telCliente + ')' : ''}`);
+  L.push(`Perro${r.dogs.length > 1 ? 's' : ''}: ${r.dogs.map((d) => d.nombre).join(', ')}`);
+  L.push(`Servicio: ${r.serv.nombre}`);
+  if (s.fechaIn || s.fechaOut) L.push(`Fechas: ${[fmtDate(s.fechaIn), fmtDate(s.fechaOut)].filter(Boolean).join(' al ')}`);
+  if (s.horaIn || s.horaOut) L.push(`Horario: ${s.horaIn} a ${s.horaOut}`);
+  L.push(`Cantidad: ${r.qty} ${r.uPlur}`);
+  r.extras.forEach((e) => L.push(`+ ${e.nombre}: ${money(e.importe)}`));
+  r.descuentos.forEach((d) => L.push(`${d.nombre}: −${money(d.importe)}`));
+  r.pagos.forEach((p) => L.push(`*Total${p.nombre ? ' ' + p.nombre.toLowerCase() : ''}: ${money(p.total)}*`));
+  if (r.pagado) L.push(`Seña abonada: ${money(r.pagado)}`);
+  else if (r.seniaPct) L.push(`Reserva (${pctTxt(r.seniaPct)}): ${money(r.senia)}`);
+  if (s.observaciones) L.push(`Obs.: ${s.observaciones}`);
   return L.join('\n');
 }
 
 async function generate(fromHistory) {
   let numero, fecha, c = cfg, s = st;
-  const tipo = clientMode ? 'presupuesto' : 'recibo';
+  const tipo = !clientMode && num((fromHistory ? fromHistory.s : st).pagado) > 0 ? 'recibo' : 'presupuesto';
   if (fromHistory) {
     ({ numero, fecha, c, s } = fromHistory);
   } else if (clientMode) {
@@ -562,9 +695,10 @@ async function generate(fromHistory) {
       currentId = 'r' + Date.now();
     }
     const entry = { id: currentId, numero, fecha, ts: Date.now(), c: clone(cfg), s: clone(st) };
-    const list = [entry, ...hist.filter((h) => h.id !== currentId)].slice(0, 100);
-    lsSet(LS_HIST, list); renderHistory(); lsSet(LS_DRAFT, { st, currentId });
+    lsSet(LS_HIST, [entry, ...hist.filter((h) => h.id !== currentId)].slice(0, 100));
+    renderHistory(); lsSet(LS_DRAFT, { st, currentId });
   }
+  await Promise.all([fontsReady(), logoReady]);
   const r = calc(c, s);
   const data = { c, s, r, numero, fecha, tipo };
   const canvas = drawReceipt(data);
@@ -575,13 +709,14 @@ async function generate(fromHistory) {
   lastResult = { blob, url: URL.createObjectURL(blob), file: new File([blob], fname, { type: 'image/png' }), data };
 
   $('#previewImg').src = lastResult.url;
-  $('#modalTitle').textContent = clientMode ? 'Tu presupuesto 🐶' : `Recibo ${numero}`;
+  $('#modalTitle').textContent = clientMode ? 'Tu presupuesto' : `${tipo === 'recibo' ? 'Recibo' : 'Presupuesto'} ${numero}`;
   const wa = $('#btnWaSend');
   if (clientMode) {
-    wa.textContent = '💬 Enviar al cuidador'; wa.hidden = !c.telefono;
-    wa.href = waLink(c.telefono, `¡Hola! Quiero reservar 🐾\n\n${summaryText(data)}`);
+    wa.lastChild.textContent = 'Mandar al cuidador'; wa.hidden = !c.telefono;
+    wa.href = waLink(c.telefono, `¡Hola! Quiero reservar.\n\n${summaryText(data)}`);
   } else {
-    wa.textContent = s.telCliente ? '💬 WhatsApp al cliente' : '💬 WhatsApp'; wa.hidden = false;
+    wa.lastChild.textContent = s.telCliente ? 'Texto por WhatsApp' : 'WhatsApp';
+    wa.hidden = false;
     wa.href = s.telCliente ? waLink(s.telCliente, summaryText(data)) : `https://wa.me/?text=${encodeURIComponent(summaryText(data))}`;
   }
   $('#modal').hidden = false;
@@ -592,34 +727,39 @@ function download() {
   if (!lastResult) return;
   const a = document.createElement('a'); a.href = lastResult.url; a.download = lastResult.file.name;
   document.body.appendChild(a); a.click(); a.remove();
-  toast('Imagen descargada ✅');
+  toast('Imagen guardada en Descargas.');
 }
 async function shareImg() {
   if (!lastResult) return;
   const f = lastResult.file;
   if (navigator.canShare && navigator.canShare({ files: [f] })) {
     try { await navigator.share({ files: [f], title: f.name }); } catch (e) { if (e.name !== 'AbortError') download(); }
-  } else { download(); toast('Tu navegador no permite compartir imágenes: se descargó.'); }
+  } else { download(); }
 }
 $('#btnDownload').addEventListener('click', download);
 $('#btnShareImg').addEventListener('click', shareImg);
 $('#btnClose').addEventListener('click', closeModal);
 $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
 function closeModal() { $('#modal').hidden = true; document.body.style.overflow = ''; }
 
 /* ======================= HISTORIAL ======================= */
 function renderHistory() {
   const list = lsGet(LS_HIST, []);
   const box = $('#historyList');
-  if (!list.length) { box.innerHTML = '<p class="muted">Todavía no generaste recibos.</p>'; return; }
+  if (!list.length) { box.innerHTML = '<p class="empty" style="padding:18px 16px">Todavía no hiciste recibos. Cuando generes uno, aparece acá.</p>'; return; }
   box.innerHTML = list.map((h) => {
     const r = calc(h.c, h.s);
-    const dogs = r.dogs.map((d) => d.nombre).join(', ');
     return `<div class="hist">
-      <div class="info"><b>${esc(h.numero)} · ${esc(dogs)}</b><span>${esc(h.s.cliente)} · ${esc(h.fecha)} · ${money(r.pagos[0].total)}</span></div>
-      <button class="btn small" data-hview="${h.id}" aria-label="Ver">👁️</button>
-      <button class="btn small" data-hedit="${h.id}" aria-label="Editar">✏️</button>
-      <button class="btn small danger" data-hdel="${h.id}" aria-label="Borrar">🗑️</button>
+      <div class="info">
+        <div class="t"><span class="n">${esc(h.numero)}</span><span class="d">${esc(r.dogs.map((d) => d.nombre).join(', '))}</span></div>
+        <div class="s">${esc(h.s.cliente)} · ${esc(h.fecha)} · ${money(Math.min(...r.pagos.map((p) => p.total)))}</div>
+      </div>
+      <div class="acts">
+        <button class="iconbtn" data-hview="${h.id}" aria-label="Ver ${esc(h.numero)}">${icon('eye')}</button>
+        <button class="iconbtn" data-hedit="${h.id}" aria-label="Editar ${esc(h.numero)}">${icon('edit')}</button>
+        <button class="iconbtn del" data-hdel="${h.id}" aria-label="Borrar ${esc(h.numero)}">${icon('trash')}</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -631,8 +771,8 @@ $('#historyList').addEventListener('click', async (e) => {
   if (b.dataset.hview) await generate(h);
   else if (b.dataset.hedit) {
     st = Object.assign(blankState(), clone(h.s)); currentId = h.id; renderForm(); showTab('recibo');
-    toast(`Editando ${h.numero}`);
-  } else if (confirm(`¿Borrar ${h.numero}?`)) {
+    toast(`Editando ${h.numero}. Al generar se actualiza.`);
+  } else if (await ask(`¿Borrar el recibo ${h.numero}?`, 'Borrar')) {
     lsSet(LS_HIST, list.filter((x) => x.id !== id)); if (currentId === id) currentId = null; renderHistory();
   }
 });
@@ -642,68 +782,69 @@ function publicCfg() { const c = clone(cfg); delete c.nextNumero; return c; }
 
 $('#btnMakeLink').addEventListener('click', async () => {
   const payload = { v: 1, c: publicCfg() };
-  if ($('#linkPrefill').checked) {
-    const p = clone(st); delete p.descExtra; delete p.pagado; payload.s = p;
-  }
+  if ($('#linkPrefill').checked) { const p = clone(st); delete p.descExtra; delete p.pagado; payload.s = p; }
   const url = `${location.origin}${location.pathname}#c=${await encodePayload(payload)}`;
   $('#linkText').value = url; $('#linkOut').hidden = false;
-  $('#btnWaLink').href = `https://wa.me/?text=${encodeURIComponent(`¡Hola! 🐾 Completá los datos de tu perro y la estadía acá y te sale el presupuesto al instante:\n${url}`)}`;
+  $('#btnWaLink').href = `https://wa.me/?text=${encodeURIComponent(`¡Hola! Completá acá los datos de tu perro y las fechas, y te sale el presupuesto al instante:\n${url}`)}`;
+  $('#linkOut').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
 $('#btnCopyLink').addEventListener('click', async () => {
   const t = $('#linkText');
   try { await navigator.clipboard.writeText(t.value); } catch { t.select(); document.execCommand('copy'); }
-  toast('Link copiado 📋');
+  toast('Link copiado.');
 });
 $('#btnShareLink').addEventListener('click', async () => {
   const url = $('#linkText').value;
-  if (navigator.share) { try { await navigator.share({ title: cfg.negocio, text: 'Completá los datos de tu perro 🐾', url }); } catch { /* cancelado */ } }
+  if (navigator.share) { try { await navigator.share({ title: cfg.negocio, text: 'Completá los datos de tu perro para el presupuesto', url }); } catch { /* cancelado */ } }
   else $('#btnCopyLink').click();
 });
 
 /* ======================= AJUSTES ======================= */
 function saveCfg() { lsSet(LS_CFG, cfg); applyBrand(); }
 function applyBrand() {
-  $('#brandName').textContent = cfg.negocio || 'Guardería Canina';
-  $('#brandSub').textContent = clientMode ? 'Presupuesto online' : (cfg.responsable || 'Recibos y presupuestos');
-  document.title = `${cfg.negocio || 'Guardería Canina'}${clientMode ? ' · Presupuesto' : ' · Recibos'}`;
+  const name = cfg.negocio || 'Inquietos Caninos';
+  $('#brandName').textContent = name;
+  const [first, ...rest] = name.split(/\s+/);
+  $('#brandWord').innerHTML = `<b>${esc(first)}</b><i>${esc(rest.join(' '))}</i>`;
+  $('#brandSub').textContent = clientMode ? 'Presupuesto' : 'Recibos';
+  document.title = name;
 }
-
+logoReady.then((im) => { if (im) { $('#brandLogo').src = im.src; $('#brandLogo').hidden = false; $('#brandWord').hidden = true; } });
 function fillCfgForm() { $$('[data-cfg]').forEach((el) => (el.value = cfg[el.dataset.cfg] ?? '')); }
-$('#cfgForm').addEventListener('input', (e) => {
-  const k = e.target.dataset.cfg; if (!k) return;
-  cfg[k] = e.target.type === 'number' ? num(e.target.value) : e.target.value;
-  saveCfg(); renderForm();
-});
 
 const EDITORS = {
-  servicios: { el: '#edServicios', cols: '2fr 1.3fr 1fr auto', blank: { nombre: '', precio: 0, unidad: 'dia' },
-    fields: [{ k: 'nombre', l: 'Nombre' }, { k: 'precio', l: 'Precio $', t: 'number' }, { k: 'unidad', l: 'Unidad', t: 'select', o: [['dia', 'día'], ['noche', 'noche']] }] },
-  tamanos: { el: '#edTamanos', cols: '2fr 1fr auto', blank: { nombre: '', recargo: 0 },
+  servicios: { el: '#edServicios', cols: 'minmax(0,1.2fr) minmax(0,1fr) auto', blank: { nombre: '', precio: 0, unidad: 'dia' }, add: 'Agregar servicio',
+    fields: [{ k: 'nombre', l: 'Servicio' }, { k: 'precio', l: 'Precio', t: 'number' }, { k: 'unidad', l: 'Por', t: 'select', o: [['dia', 'día'], ['noche', 'noche']] }] },
+  tamanos: { el: '#edTamanos', cols: 'minmax(0,2fr) minmax(0,1fr) auto', blank: { nombre: '', recargo: 0 }, add: 'Agregar tamaño',
     fields: [{ k: 'nombre', l: 'Tamaño' }, { k: 'recargo', l: 'Recargo %', t: 'number' }] },
-  extras: { el: '#edExtras', cols: '2fr 1.3fr 1fr auto', blank: { nombre: '', precio: 0, unidad: 'unico' },
-    fields: [{ k: 'nombre', l: 'Extra' }, { k: 'precio', l: 'Precio $', t: 'number' }, { k: 'unidad', l: 'Unidad', t: 'select', o: [['unico', 'único'], ['dia', 'día']] }] },
-  pagos: { el: '#edPagos', cols: '2fr 1fr auto', blank: { nombre: '', descuento: 0 },
+  extras: { el: '#edExtras', cols: 'minmax(0,1.2fr) minmax(0,1fr) auto', blank: { nombre: '', precio: 0, unidad: 'unico' }, add: 'Agregar extra',
+    fields: [{ k: 'nombre', l: 'Extra' }, { k: 'precio', l: 'Precio', t: 'number' }, { k: 'unidad', l: 'Cobro', t: 'select', o: [['unico', 'único'], ['dia', 'por día']] }] },
+  pagos: { el: '#edPagos', cols: 'minmax(0,2fr) minmax(0,1fr) auto', blank: { nombre: '', descuento: 0 }, add: 'Agregar forma de pago',
     fields: [{ k: 'nombre', l: 'Forma de pago' }, { k: 'descuento', l: 'Desc. %', t: 'number' }] },
-  descEstadia: { el: '#edDescEstadia', cols: '1fr 1fr auto', blank: { desde: 0, pct: 0 },
+  descEstadia: { el: '#edDescEstadia', cols: 'minmax(0,1fr) minmax(0,1fr) auto', blank: { desde: 0, pct: 0 }, add: 'Agregar escalón',
     fields: [{ k: 'desde', l: 'Desde (días)', t: 'number' }, { k: 'pct', l: 'Desc. %', t: 'number' }] },
 };
 function renderEditor(key) {
   const E = EDITORS[key], box = $(E.el);
   box.innerHTML = cfg[key].map((item, i) => `
     <div class="ed-row" style="grid-template-columns:${E.cols}">
-      ${E.fields.map((f) => `<label>${f.l}${f.t === 'select'
-        ? `<select data-ed="${key}" data-i="${i}" data-k="${f.k}">${f.o.map(([v, t]) => `<option value="${v}" ${item[f.k] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`
-        : `<input data-ed="${key}" data-i="${i}" data-k="${f.k}" ${f.t === 'number' ? 'type="number" step="any" inputmode="decimal"' : ''} value="${esc(item[f.k])}">`}</label>`).join('')}
-      <button type="button" class="icon-btn" data-edel="${key}" data-i="${i}" aria-label="Quitar">✕</button>
-    </div>`).join('') + `<button type="button" class="btn ghost small ed-add" data-eadd="${key}">➕ Agregar</button>`;
+      ${E.fields.map((f) => { const id = `ed-${key}-${i}-${f.k}`; return `<div class="field"><label for="${id}">${f.l}</label>${f.t === 'select'
+        ? `<select id="${id}" data-ed="${key}" data-i="${i}" data-k="${f.k}">${f.o.map(([v, t]) => `<option value="${v}" ${item[f.k] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`
+        : `<input id="${id}" data-ed="${key}" data-i="${i}" data-k="${f.k}" ${f.t === 'number' ? 'type="number" step="any" inputmode="decimal"' : ''} value="${esc(item[f.k])}">`}</div>`; }).join('')}
+      <button type="button" class="iconbtn del" data-edel="${key}" data-i="${i}" aria-label="Quitar">${icon('x')}</button>
+    </div>`).join('') + `<button type="button" class="btn btn-sm ed-add" data-eadd="${key}">${icon('plus')}${E.add}</button>`;
 }
 $('#cfgForm').addEventListener('input', (e) => {
-  const t = e.target; if (!t.dataset.ed) return;
-  const f = EDITORS[t.dataset.ed].fields.find((x) => x.k === t.dataset.k);
-  cfg[t.dataset.ed][+t.dataset.i][t.dataset.k] = f.t === 'number' ? num(t.value) : t.value;
+  const t = e.target;
+  if (t.dataset.cfg) {
+    cfg[t.dataset.cfg] = t.type === 'number' ? num(t.value) : t.value;
+  } else if (t.dataset.ed) {
+    const f = EDITORS[t.dataset.ed].fields.find((x) => x.k === t.dataset.k);
+    cfg[t.dataset.ed][+t.dataset.i][t.dataset.k] = f.t === 'number' ? num(t.value) : t.value;
+  } else return;
   saveCfg(); renderForm();
 });
-$('#cfgForm').addEventListener('click', (e) => {
+$('#cfgForm').addEventListener('click', async (e) => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.eadd) { cfg[b.dataset.eadd].push(clone(EDITORS[b.dataset.eadd].blank)); renderEditor(b.dataset.eadd); }
   else if (b.dataset.edel) {
@@ -711,37 +852,35 @@ $('#cfgForm').addEventListener('click', (e) => {
     cfg[k].splice(i, 1);
     if (k === 'extras') { const ne = {}; Object.entries(st.extras).forEach(([j, v]) => { if (+j < i) ne[j] = v; else if (+j > i) ne[+j - 1] = v; }); st.extras = ne; }
     renderEditor(k);
+  } else if (b.id === 'btnExport') {
+    const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'guarderia-ajustes.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000); return;
+  } else if (b.id === 'btnFactory') {
+    if (!(await ask('¿Volver a los precios y textos de fábrica? El historial no se borra.', 'Restaurar'))) return;
+    const n = cfg.nextNumero; cfg = clone(DEFAULT_CFG); cfg.nextNumero = n; initCfgUI();
   } else return;
   saveCfg(); renderForm();
 });
-
-$('#btnExport').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'guarderia-ajustes.json'; a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-});
 $('#fileImport').addEventListener('change', async (e) => {
   const f = e.target.files[0]; if (!f) return;
-  try { cfg = Object.assign(clone(DEFAULT_CFG), JSON.parse(await f.text())); saveCfg(); initCfgUI(); renderForm(); toast('Ajustes importados ✅'); }
-  catch { toast('Archivo inválido'); }
+  try { cfg = Object.assign(clone(DEFAULT_CFG), JSON.parse(await f.text())); saveCfg(); initCfgUI(); renderForm(); toast('Ajustes importados.'); }
+  catch { toast('Ese archivo no es una copia de ajustes válida.'); }
   e.target.value = '';
-});
-$('#btnFactory').addEventListener('click', () => {
-  if (!confirm('¿Restaurar todos los precios y textos de fábrica? (el historial no se borra)')) return;
-  const n = cfg.nextNumero; cfg = clone(DEFAULT_CFG); cfg.nextNumero = n; saveCfg(); initCfgUI(); renderForm();
 });
 function initCfgUI() { fillCfgForm(); Object.keys(EDITORS).forEach(renderEditor); }
 
-/* ======================= PESTAÑAS / PWA ======================= */
+/* ======================= NAVEGACIÓN / PWA ======================= */
 function showTab(name) {
-  $$('#tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+  $$('#tabs button').forEach((b) => { b.classList.toggle('active', b.dataset.tab === name); b.setAttribute('aria-current', b.dataset.tab === name ? 'page' : 'false'); });
   $$('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + name));
+  document.body.classList.toggle('on-recibo', name === 'recibo');
   window.scrollTo(0, 0);
 }
 $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) showTab(b.dataset.tab); });
 
 let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; $('#installBtn').hidden = false; });
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; if (!clientMode) $('#installBtn').hidden = false; });
 $('#installBtn').addEventListener('click', async () => {
   if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; $('#installBtn').hidden = true;
 });
@@ -760,9 +899,9 @@ async function init() {
       st = Object.assign(blankState(), payload.s || {});
       document.body.classList.add('client');
       $('#clientIntro').hidden = false;
-      $('#btnGenerar').textContent = '🧾 Ver mi presupuesto';
-    } catch (e) {
-      toast('El link está incompleto o dañado');
+      $('#btnGenerar').textContent = 'Ver presupuesto';
+    } catch {
+      toast('El link está incompleto. Pedile al cuidador que te lo mande de nuevo.');
     }
   }
   if (!clientMode) {
@@ -770,6 +909,7 @@ async function init() {
     if (draft && draft.st) { st = Object.assign(blankState(), draft.st); currentId = draft.currentId || null; }
     initCfgUI(); renderHistory();
   }
+  document.body.classList.add('on-recibo');
   applyBrand();
   renderForm();
 }
