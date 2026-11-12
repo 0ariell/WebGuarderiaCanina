@@ -46,6 +46,19 @@ const DEFAULT_CFG = {
   nextNumero: 1,
 };
 
+/* Datos del negocio desde config.js (archivo compartido con la página web) */
+(function aplicarConfig(S) {
+  if (!S) return;
+  const set = (k, v) => { if (v !== undefined && v !== null && v !== '') DEFAULT_CFG[k] = v; };
+  ['negocio', 'responsable', 'alias', 'cbu', 'titular', 'banco', 'horaIn', 'horaOut',
+    'extras', 'pagos', 'descEstadia', 'descPerroAdicional', 'seniaPct', 'validez'].forEach((k) => set(k, S[k]));
+  set('telefono', S.whatsapp);
+  set('redes', S.instagram && '@' + String(S.instagram).replace(/^@/, ''));
+  set('direccion', S.direccion || S.zona);
+  if (Array.isArray(S.servicios)) set('servicios', S.servicios.map((x) => ({ nombre: x.nombre, precio: x.precio, unidad: x.unidad || 'dia' })));
+  set('condiciones', Array.isArray(S.condiciones) ? S.condiciones.join('\n') : S.condiciones);
+})(window.INQUIETOS);
+
 const LS_CFG = 'ic.cfg', LS_HIST = 'ic.hist', LS_DRAFT = 'ic.draft';
 
 /* ======================= UTILIDADES ======================= */
@@ -112,7 +125,19 @@ async function decodePayload(str) {
 }
 
 /* ======================= ESTADO ======================= */
-let cfg = Object.assign(clone(DEFAULT_CFG), lsGet(LS_CFG, {}));
+/* Ajustes guardados: si un valor no se tocó desde la app, se toma el de config.js
+   (así, editar config.js actualiza la app sin pisar lo que se cambió a mano). */
+const LS_BASE = 'ic.cfgBase';
+function loadCfg() {
+  const saved = lsGet(LS_CFG, null), base = lsGet(LS_BASE, {});
+  const out = clone(DEFAULT_CFG);
+  if (saved) for (const k of Object.keys(saved)) {
+    const untouched = k in base && JSON.stringify(saved[k]) === JSON.stringify(base[k]);
+    if (!untouched || k === 'nextNumero') out[k] = saved[k];
+  }
+  return out;
+}
+let cfg = loadCfg();
 let clientMode = false;
 let currentId = null;     // id del historial del recibo en edición
 let lastResult = null;    // { blob, url, file, data }
@@ -394,7 +419,7 @@ const logoReady = new Promise((res) => {
   const im = new Image();
   im.onload = () => { logoImg = im; res(im); };
   im.onerror = () => res(null);
-  im.src = 'icons/logo.png?v=1';
+  im.src = '../icons/logo.png?v=2';
 });
 const F = {
   disp: (w, px, stretch = 'semi-expanded') => `${w} ${stretch} ${px}px Archivo, "Arial Narrow", sans-serif`,
@@ -800,7 +825,7 @@ $('#btnShareLink').addEventListener('click', async () => {
 });
 
 /* ======================= AJUSTES ======================= */
-function saveCfg() { lsSet(LS_CFG, cfg); applyBrand(); }
+function saveCfg() { lsSet(LS_CFG, cfg); lsSet(LS_BASE, DEFAULT_CFG); applyBrand(); }
 function applyBrand() {
   const name = cfg.negocio || 'Inquietos Caninos';
   $('#brandName').textContent = name;
@@ -907,7 +932,19 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 /* ======================= INICIO ======================= */
 async function init() {
   const m = location.hash.match(/[#&]c=([^&]+)/);
-  if (m) {
+  const direct = /^#cliente\b/.test(location.hash);
+  if (direct) {
+    // entrada desde la página web: precios de config.js
+    clientMode = true;
+    cfg = clone(DEFAULT_CFG);
+    st = blankState();
+    const sv = location.hash.match(/[#&]s=(\d+)/), pe = location.hash.match(/[#&]p=(\d+)/);
+    if (sv && cfg.servicios[+sv[1]]) st.servicio = +sv[1];
+    if (pe) for (let i = 1; i < Math.min(+pe[1], 6); i++) st.dogs.push({ nombre: '', raza: '', edad: '', tamano: 0 });
+    document.body.classList.add('client');
+    $('#clientIntro').hidden = false;
+    $('#btnGenerar').textContent = 'Ver presupuesto';
+  } else if (m) {
     try {
       const payload = await decodePayload(m[1]);
       clientMode = true;

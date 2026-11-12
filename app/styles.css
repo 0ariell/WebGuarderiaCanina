@@ -1,9 +1,9 @@
 /* Concepto: identidad de Inquietos Caninos. Azul francia y celeste del logo, la pelotita roja
    como único detalle cálido; papel blanco con un velo celeste; ficha de ingreso con calendario. */
-@font-face { font-family: "Archivo"; src: url(fonts/archivo.woff2) format("woff2"); font-weight: 400 900; font-stretch: 62% 125%; font-display: swap; }
-@font-face { font-family: "Onest"; src: url(fonts/onest.woff2) format("woff2"); font-weight: 400 700; font-display: swap; }
-@font-face { font-family: "Plex Mono"; src: url(fonts/plexmono-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Plex Mono"; src: url(fonts/plexmono-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Archivo"; src: url(../fonts/archivo.woff2) format("woff2"); font-weight: 400 900; font-stretch: 62% 125%; font-display: swap; }
+@font-face { font-family: "Onest"; src: url(../fonts/onest.woff2) format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Plex Mono"; src: url(../fonts/plexmono-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Plex Mono"; src: url(../fonts/plexmono-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
 
 :root {
   --paper: #eef4f9;

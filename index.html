@@ -3,335 +3,379 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Inquietos Caninos</title>
-  <meta name="description" content="Presupuestos y recibos de estadía, guardería y paseos para perros.">
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0b1530" media="(prefers-color-scheme: dark)">
-  <link rel="manifest" href="manifest.webmanifest">
+  <title>Inquietos Caninos · Paseos, guardería y estadías</title>
+  <meta name="description" content="Paseos, guardería de día y estadías para perros. Grupos chicos, rutina de casa y fotos todos los días. Calculá tu presupuesto al instante.">
+  <meta name="theme-color" content="#f6fafd" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#06102a" media="(prefers-color-scheme: dark)">
+  <meta property="og:title" content="Inquietos Caninos">
+  <meta property="og:description" content="Paseos, guardería de día y estadías para perros que no se quedan quietos.">
+  <meta property="og:image" content="icons/icon-512.png">
+  <meta property="og:type" content="website">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preload" href="fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/onest.woff2" as="font" type="font/woff2" crossorigin>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Inquietos">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <script>try{var t=localStorage.getItem('ic.theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
-  <link rel="stylesheet" href="styles.css">
+  <script>if(/^#(c=|cliente)/.test(location.hash))location.replace('app/'+location.hash);try{var t=localStorage.getItem('ic.theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+  <link rel="stylesheet" href="assets/landing.css">
 </head>
 <body>
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <svg width="0" height="0" class="absolute" aria-hidden="true">
     <defs>
-      <symbol id="i-paw" viewBox="0 0 24 24"><ellipse cx="12" cy="16.2" rx="4.6" ry="3.9"/><ellipse cx="5.3" cy="10.6" rx="2" ry="2.6" transform="rotate(-18 5.3 10.6)"/><ellipse cx="9.2" cy="6.4" rx="2" ry="2.7" transform="rotate(-6 9.2 6.4)"/><ellipse cx="14.8" cy="6.4" rx="2" ry="2.7" transform="rotate(6 14.8 6.4)"/><ellipse cx="18.7" cy="10.6" rx="2" ry="2.6" transform="rotate(18 18.7 10.6)"/></symbol>
-      <symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-2.3-1.6L14.3 21 12 19.4 9.7 21l-2.4-1.6L5 21z"/><path d="M8.5 8h7M8.5 11.5h7M8.5 15h4"/></symbol>
-      <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></symbol>
-      <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
-      <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></symbol>
+      <symbol id="i-casa" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14.5 16 5l11 9.5"/><path d="M8 12.5V27h16V12.5"/><path d="M19.5 17.5a3.5 3.5 0 1 1-3.9-3.5 2.8 2.8 0 0 0 3.9 3.5z"/></symbol>
+      <symbol id="i-sol" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="16" cy="16" r="5.5"/><path d="M16 3.5v3M16 25.5v3M3.5 16h3M25.5 16h3M7.2 7.2l2.1 2.1M22.7 22.7l2.1 2.1M7.2 24.8l2.1-2.1M22.7 9.3l2.1-2.1"/></symbol>
+      <symbol id="i-correa" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z"/><path d="M11.8 13.5C15 19 20 21 24.5 22"/><rect x="22.5" y="19.5" width="6" height="5" rx="1.6"/><path d="M25.5 24.5v3"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+      <symbol id="i-wa" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.2a9.7 9.7 0 0 0-8.4 14.6L2.3 21.7l5-1.3A9.7 9.7 0 1 0 12 2.2zm0 17.7a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 19.9zm4.4-6c-.2-.1-1.4-.7-1.7-.8-.2-.1-.4-.1-.5.1l-.8 1c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.5-.4h-.5a.9.9 0 0 0-.6.3 2.7 2.7 0 0 0-.9 2c0 1.2.9 2.3 1 2.5.1.2 1.7 2.6 4.1 3.7 1.5.7 2.1.7 2.9.6.5-.1 1.4-.6 1.6-1.1.2-.6.2-1 .1-1.1l-.4-.2z"/></symbol>
+      <symbol id="i-ig" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="i-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+      <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+      <symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-2.3-1.6L14.3 21 12 19.4 9.7 21l-2.4-1.6L5 21z"/><path d="M8.5 8h7M8.5 11.5h7M8.5 15h4"/></symbol>
+      <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></symbol>
+      <symbol id="i-paw" viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16.2" rx="4.6" ry="3.9"/><ellipse cx="5.3" cy="10.6" rx="2" ry="2.6" transform="rotate(-18 5.3 10.6)"/><ellipse cx="9.2" cy="6.4" rx="2" ry="2.7" transform="rotate(-6 9.2 6.4)"/><ellipse cx="14.8" cy="6.4" rx="2" ry="2.7" transform="rotate(6 14.8 6.4)"/><ellipse cx="18.7" cy="10.6" rx="2" ry="2.6" transform="rotate(18 18.7 10.6)"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke-linecap="round"/></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/></symbol>
       <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></symbol>
       <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></symbol>
-      <symbol id="i-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
-      <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></symbol>
-      <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
-      <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
-      <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
-      <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M6 12v7h12v-7"/></symbol>
-      <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
-      <symbol id="i-wa" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.2a9.7 9.7 0 0 0-8.4 14.6L2.3 21.7l5-1.3A9.7 9.7 0 1 0 12 2.2zm0 17.7a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 19.9zm4.4-6c-.2-.1-1.4-.7-1.7-.8-.2-.1-.4-.1-.5.1l-.8 1c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.5-.4h-.5a.9.9 0 0 0-.6.3 2.7 2.7 0 0 0-.9 2c0 1.2.9 2.3 1 2.5.1.2 1.7 2.6 4.1 3.7 1.5.7 2.1.7 2.9.6.5-.1 1.4-.6 1.6-1.1.2-.6.2-1 .1-1.1l-.4-.2z"/></symbol>
-      <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
-      <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
-      <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></symbol>
     </defs>
   </svg>
 
-  <header class="appbar">
-    <div class="appbar-in">
-      <div class="brand" id="brand">
-        <img id="brandLogo" alt="Inquietos Caninos" hidden>
-        <span class="wordmark" id="brandWord" aria-hidden="true"><b>Inquietos</b><i>Caninos</i></span>
-        <h1 id="brandName" class="sr">Inquietos Caninos</h1>
-      </div>
-      <button id="installBtn" class="btn btn-sm" hidden>Instalar</button>
+  <!-- ===================== NAVEGACIÓN ===================== -->
+  <header id="nav" class="fixed inset-x-0 top-0 z-50 pt-[env(safe-area-inset-top)] transition-[background-color,box-shadow,backdrop-filter] duration-300">
+    <div class="wrap flex h-20 items-center gap-4">
+      <a href="#inicio" class="mr-auto shrink-0" aria-label="Inquietos Caninos, ir al inicio">
+        <img src="assets/img/logo.webp" alt="Inquietos Caninos" class="logo-img w-[132px] sm:w-[150px]" width="600" height="298">
+      </a>
+      <nav class="hidden items-center gap-8 lg:flex" aria-label="Secciones">
+        <a class="nav-link" href="#servicios">Servicios</a>
+        <a class="nav-link" href="#como">Cómo reservar</a>
+        <a class="nav-link" href="#precios">Precios</a>
+        <a class="nav-link" href="#cuidado">Cómo lo cuidamos</a>
+        <a class="nav-link" href="#preguntas">Preguntas</a>
+      </nav>
       <button type="button" class="themebtn" id="themeBtn" aria-label="Cambiar a modo oscuro">
-        <svg class="ic sun"><use href="#i-sun"/></svg><svg class="ic moon"><use href="#i-moon"/></svg>
+        <svg class="moon"><use href="#i-moon"/></svg><svg class="sun"><use href="#i-sun"/></svg>
       </button>
+      <a href="#precios" class="btn btn-primary hidden !min-h-[46px] !px-5 sm:inline-flex">Calcular presupuesto</a>
+      <button type="button" id="menuBtn" class="grid h-[46px] w-[46px] place-items-center rounded-full border-[1.5px] border-line bg-surface text-ink lg:hidden" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu">
+        <svg class="h-6 w-6"><use href="#i-menu"/></svg>
+      </button>
+    </div>
+    <!-- avance del scroll: la pelotita rueda -->
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-[3px]" aria-hidden="true">
+      <div id="progress" class="h-full w-full origin-left scale-x-0 bg-gradient-to-r from-brand to-cyan"></div>
+      <span id="progressBall" class="absolute -top-[5px] left-0 h-[13px] w-[13px] rounded-full bg-ball shadow-[0_2px_6px_rgba(227,38,43,.5)] opacity-0"></span>
     </div>
   </header>
 
-  <main class="wrap">
-    <!-- ================= RECIBO / FORMULARIO ================= -->
-    <section id="tab-recibo" class="tab active" aria-label="Nuevo recibo">
-      <div id="clientIntro" class="intro" hidden>
-        <p class="eyebrow">Presupuesto online</p>
-        <h2>Contanos de tu perro y cuándo lo traés</h2>
-        <p>Con eso te armamos el presupuesto al instante. Lo podés guardar como imagen y mandárnoslo por WhatsApp para reservar.</p>
+  <!-- menú móvil -->
+  <div id="menu" class="fixed inset-0 z-[60] hidden bg-bg/95 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="Menú">
+    <div class="wrap flex h-full flex-col pt-[calc(env(safe-area-inset-top)+20px)] pb-[calc(env(safe-area-inset-bottom)+28px)]">
+      <div class="flex items-center justify-between">
+        <img src="assets/img/logo.webp" alt="" class="logo-img w-[132px]">
+        <button type="button" id="menuClose" class="grid h-[46px] w-[46px] place-items-center rounded-full border-[1.5px] border-line bg-surface" aria-label="Cerrar menú"><svg class="h-6 w-6"><use href="#i-x"/></svg></button>
       </div>
-
-      <div class="pagehead" id="adminHead">
-        <p class="eyebrow" id="todayLbl"></p>
-        <h2>Nuevo presupuesto</h2>
+      <nav class="mt-12 flex flex-col gap-2" aria-label="Secciones">
+        <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#servicios">Servicios</a>
+        <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#como">Cómo reservar</a>
+        <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#precios">Precios</a>
+        <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#cuidado">Cuidado</a>
+        <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#preguntas">Preguntas</a>
+      </nav>
+      <div class="mt-auto grid gap-3">
+        <a href="#precios" class="btn btn-primary menu-link w-full">Calcular presupuesto</a>
+        <a href="#" class="btn btn-wa w-full" data-wa><svg><use href="#i-wa"/></svg>Escribinos por WhatsApp</a>
       </div>
+    </div>
+  </div>
 
-      <form id="form" autocomplete="on" novalidate>
-        <fieldset class="step">
-          <legend><span class="step-n">1</span>Dueño o dueña</legend>
-          <div class="panel">
-            <div class="field">
-              <label for="f-cliente">Nombre y apellido</label>
-              <input id="f-cliente" name="cliente" required placeholder="Laura Gómez" autocomplete="name">
-            </div>
-            <div class="field">
-              <label for="f-tel">WhatsApp</label>
-              <input id="f-tel" name="telCliente" type="tel" inputmode="tel" placeholder="11 5555-5555" autocomplete="tel">
-            </div>
-            <div class="field" id="dirField" hidden>
-              <label for="f-dir">Dirección para buscarlo</label>
-              <input id="f-dir" name="dirCliente" placeholder="Calle, altura y barrio" autocomplete="street-address">
-            </div>
+  <main>
+    <!-- ===================== PORTADA ===================== -->
+    <section id="inicio" class="relative overflow-hidden pt-[calc(env(safe-area-inset-top)+110px)] pb-20 lg:pt-[150px] lg:pb-28">
+      <div class="grain pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(70%_60%_at_70%_40%,#000,transparent)]" aria-hidden="true"></div>
+      <div class="wrap relative grid items-center gap-14 lg:grid-cols-[1.15fr_.85fr] lg:gap-10">
+        <div class="hero-copy">
+          <p class="eyebrow h-in" data-zona>Paseos · Guardería · Estadías</p>
+          <h1 class="display mt-6 text-[clamp(2.9rem,6.4vw,5.9rem)] text-brand" aria-label="Para perros que no se quedan quietos.">
+            <span aria-hidden="true"><span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">Para</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">perros</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">que</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">no</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">se</span></span> <span class="text-cyan"><span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">quedan</span></span> <span class="-mt-[.3em] inline-block overflow-hidden pt-[.3em] pb-[.06em] align-bottom"><span class="h-word inline-block">qu<span class="relative inline-block">i<span id="iDot" class="absolute left-1/2 top-[.02em] h-[.19em] w-[.19em] -translate-x-1/2 -translate-y-full rounded-full bg-ball"></span></span>etos.</span></span></span></span>
+          </h1>
+          <p class="lead h-in mt-7">Paseos, guardería de día y estadías <span data-zona-txt>en Buenos Aires</span>. Grupos chicos, rutina de casa y fotos para que sepas cómo la está pasando.</p>
+          <div class="h-in mt-9 flex flex-wrap gap-3">
+            <a href="#precios" class="btn btn-primary">Calcular mi presupuesto<svg><use href="#i-arrow"/></svg></a>
+            <a href="#" class="btn btn-ghost" data-wa><svg class="text-wa"><use href="#i-wa"/></svg>Escribinos</a>
           </div>
-        </fieldset>
-
-        <fieldset class="step">
-          <legend><span class="step-n">2</span>Perro</legend>
-          <div id="dogsList" class="dogs"></div>
-          <button type="button" class="btn btn-dashed" id="btnAddDog"><svg class="ic"><use href="#i-plus"/></svg>Agregar otro perro</button>
-          <div class="panel">
-            <div class="field">
-              <label for="f-obs">Observaciones <span class="opt">comida, medicación, carácter. Sale en el recibo.</span></label>
-              <textarea id="f-obs" name="observaciones" rows="2" placeholder="Come dos veces por día. Toma una pastilla a la noche."></textarea>
-            </div>
-          </div>
-        </fieldset>
-
-        <fieldset class="step">
-          <legend><span class="step-n">3</span>Estadía</legend>
-          <div class="panel">
-            <div class="field">
-              <label for="selServicio">Servicio</label>
-              <select id="selServicio" name="servicio"></select>
-            </div>
-            <div class="cal" id="cal">
-              <div class="cal-head">
-                <button type="button" class="iconbtn" id="calPrev" aria-label="Mes anterior"><svg class="ic"><use href="#i-left"/></svg></button>
-                <span class="cal-title" id="calTitle"></span>
-                <button type="button" class="iconbtn" id="calNext" aria-label="Mes siguiente"><svg class="ic"><use href="#i-right"/></svg></button>
-              </div>
-              <div class="cal-dow" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-              <div class="cal-grid" id="calGrid" role="grid"></div>
-            </div>
-            <p class="cal-hint" id="calHint"></p>
-            <div class="cal-tools" id="calTools">
-              <button type="button" class="btn btn-sm" id="calWeekdays">Sacar sábados y domingos</button>
-              <button type="button" class="btn btn-sm btn-quiet" id="calClear">Borrar fechas</button>
-            </div>
-            <div class="times">
-              <div class="field">
-                <label for="f-hin">Hora de ingreso</label>
-                <input id="f-hin" name="horaIn" type="time">
-              </div>
-              <div class="field">
-                <label for="f-hout">Hora de retiro</label>
-                <input id="f-hout" name="horaOut" type="time">
-              </div>
-            </div>
-          </div>
-        </fieldset>
-
-        <fieldset class="step">
-          <legend><span class="step-n">4</span>Extras</legend>
-          <div class="panel list" id="extrasList"></div>
-          <p class="hint" id="noExtras" hidden>No hay extras cargados. Se agregan en Ajustes.</p>
-        </fieldset>
-
-        <fieldset class="step">
-          <legend><span class="step-n">5</span>Pago</legend>
-          <div class="panel">
-            <div class="field">
-              <span class="lbl">Mostrar en el recibo</span>
-              <div class="seg" id="pagos"></div>
-            </div>
-            <div class="grid2" id="adminPayFields">
-              <div class="field">
-                <label for="f-dx">Descuento especial <span class="opt">%</span></label>
-                <input id="f-dx" name="descExtra" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="0">
-              </div>
-              <div class="field">
-                <label for="f-pag">Seña ya cobrada <span class="opt">$ · lo convierte en recibo</span></label>
-                <input id="f-pag" name="pagado" type="number" min="0" step="1" inputmode="decimal" placeholder="0">
-              </div>
-            </div>
-          </div>
-        </fieldset>
-
-        <section class="step" aria-label="Resumen">
-          <h3 class="legend">Resumen</h3>
-          <div class="panel summary" id="summary"></div>
-          <button type="button" class="btn btn-quiet btn-block" id="btnReset">Empezar uno nuevo</button>
-        </section>
-
-        <div class="totalbar" id="totalbar">
-          <div class="tb-sum">
-            <span class="tb-k" id="barTotalLabel">Total</span>
-            <span class="tb-v" id="barTotal">$0</span>
-          </div>
-          <button type="submit" class="btn btn-primary" id="btnGenerar">Generar recibo</button>
+          <ul class="h-in mt-10 flex flex-wrap gap-x-7 gap-y-3 text-[.95rem] font-semibold text-ink-2">
+            <li class="flex items-center gap-2"><svg class="h-5 w-5 text-cyan"><use href="#i-users"/></svg>Grupos chicos</li>
+            <li class="flex items-center gap-2"><svg class="h-5 w-5 text-cyan"><use href="#i-cam"/></svg>Fotos todos los días</li>
+            <li class="flex items-center gap-2"><svg class="h-5 w-5 text-cyan"><use href="#i-home"/></svg>Rutina como en casa</li>
+          </ul>
         </div>
-      </form>
+
+        <!-- composición: perro, pelotita y presupuesto -->
+        <div class="relative mx-auto aspect-[1/1.02] w-full max-w-[540px]" id="heroArt" aria-hidden="true">
+          <div class="absolute inset-[4%] rounded-full bg-sky"></div>
+          <div class="absolute inset-[4%] overflow-hidden rounded-full">
+            <div class="stripes absolute inset-x-0 bottom-[16%] h-[18%] opacity-90"></div>
+            <div class="absolute inset-x-0 bottom-0 h-[17%] bg-sky-2"></div>
+          </div>
+          <div class="absolute inset-0 rounded-full border-2 border-dashed border-sky-2 hero-ring"></div>
+          <img src="assets/img/perro.webp" alt="" class="hero-dog absolute bottom-[9%] left-[40%] w-[40%] sm:left-[28%] sm:w-[38%] drop-shadow-[0_18px_24px_rgba(10,28,68,.25)]" width="560" height="1036">
+          <span id="ball" class="absolute left-[56%] top-[14%] h-[11%] w-[11%] rounded-full shadow-[inset_-6px_-8px_0_rgba(0,0,0,.18),0_10px_18px_rgba(227,38,43,.35)]" style="background:radial-gradient(circle at 35% 30%,#ff6b62,var(--c-ball) 55%,#b8141c)"></span>
+
+          <!-- ticket -->
+          <div class="ticket float-a absolute bottom-[1%] left-0 w-[50%] max-w-[270px] p-3.5 sm:left-[-6%] sm:bottom-[3%] sm:w-[56%] sm:p-5" style="--perf:64%">
+            <div class="flex items-center justify-between font-mono text-[.62rem] font-semibold tracking-[.14em] text-[#13a6cb]"><span>PRESUPUESTO</span><span class="text-[#8a9bb5]">N° 0128</span></div>
+            <p class="display mt-2 text-[1.6rem] text-[#1d4fa6] sm:text-[1.9rem]" id="tkName">Tilo</p>
+            <p class="mt-1 font-mono text-[.7rem] font-semibold tracking-wider text-[#4a5f82]" id="tkLine">ESTADÍA · 5 DÍAS</p>
+            <div class="my-3 border-t-2 border-dashed border-[#dbe6f0]"></div>
+            <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-2">
+              <span class="whitespace-nowrap font-mono text-[.62rem] font-semibold tracking-wider text-[#4a5f82]">EN EFECTIVO</span>
+              <span class="font-display text-[1.2rem] font-black leading-none text-[#1d4fa6] [font-stretch:108%] sm:text-[1.45rem]" id="tkTotal">$315.000</span>
+            </div>
+          </div>
+          <!-- chip calendario -->
+          <div class="float-b absolute right-[-5%] top-[22%] hidden items-center gap-3 sm:flex rounded-2xl bg-surface p-3 pr-4 shadow-[0_20px_40px_-18px_rgba(10,28,68,.4)] sm:right-[-5%]">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-sky text-brand"><svg class="h-5 w-5"><use href="#i-cal"/></svg></span>
+            <span class="leading-tight"><span class="block font-mono text-[.62rem] font-semibold tracking-wider text-ink-3">INGRESO → RETIRO</span><span class="block font-display text-[1.05rem] font-extrabold text-ink [font-stretch:105%]" id="tkDates">JUE 19 → LUN 23</span></span>
+          </div>
+          <!-- chip foto -->
+          <div class="float-c absolute left-[0%] top-[16%] flex items-center gap-2 sm:left-auto sm:top-auto sm:right-[4%] sm:bottom-[24%] rounded-full bg-surface py-2 pl-2 pr-4 shadow-[0_16px_34px_-16px_rgba(10,28,68,.4)]">
+            <span class="grid h-8 w-8 place-items-center rounded-full bg-wa text-white"><svg class="h-4 w-4"><use href="#i-wa"/></svg></span>
+            <span class="text-[.85rem] font-semibold text-ink">Llegó una foto</span>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <!-- ================= LINK CLIENTE ================= -->
-    <section id="tab-link" class="tab" aria-label="Link para clientes">
-      <div class="pagehead">
-        <h2>Link para clientes</h2>
-        <p>Tu cliente abre el link, carga los datos de su perro y la estadía, y ve el presupuesto con tus precios. Puede guardarlo como imagen y mandártelo a tu WhatsApp.</p>
-      </div>
-      <div class="panel">
-        <label class="switch" for="linkPrefill">
-          <input type="checkbox" id="linkPrefill">
-          <span>Incluir lo que ya cargué en el formulario <span class="opt">fechas, servicio, perro</span></span>
-        </label>
-        <button class="btn btn-primary btn-block" id="btnMakeLink">Crear link</button>
-      </div>
-      <div id="linkOut" class="panel" hidden>
-        <label for="linkText" class="lbl">Link listo para mandar</label>
-        <textarea id="linkText" rows="3" readonly></textarea>
-        <div class="row-btns">
-          <button class="btn" id="btnCopyLink"><svg class="ic"><use href="#i-copy"/></svg>Copiar</button>
-          <button class="btn" id="btnShareLink"><svg class="ic"><use href="#i-share"/></svg>Compartir</button>
-          <a class="btn btn-wa" id="btnWaLink" target="_blank" rel="noopener"><svg class="ic"><use href="#i-wa"/></svg>WhatsApp</a>
+    <!-- ===================== FRANJA ===================== -->
+    <div class="relative -rotate-[1.5deg] overflow-hidden border-y-[3px] border-brand bg-surface py-4" aria-hidden="true">
+      <div class="marquee font-display text-[1.6rem] font-black uppercase tracking-tight text-brand [font-stretch:115%]" id="marquee"></div>
+    </div>
+
+    <!-- ===================== SERVICIOS ===================== -->
+    <section id="servicios" class="py-24 lg:py-32">
+      <div class="wrap">
+        <div class="reveal flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p class="eyebrow">Lo que hacemos</p>
+            <h2 class="h2 mt-4 max-w-[16ch]">Tres formas de cuidarlo</h2>
+          </div>
+          <p class="lead lg:max-w-[42ch]">Desde un paseo para que descargue energía hasta unas vacaciones completas mientras vos estás de viaje.</p>
         </div>
+        <div class="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3" id="svcGrid"></div>
       </div>
-      <p class="hint">Cada link guarda los precios del día en que lo creás. Si cambiás precios en Ajustes, creá uno nuevo.</p>
     </section>
 
-    <!-- ================= HISTORIAL ================= -->
-    <section id="tab-historial" class="tab" aria-label="Historial">
-      <div class="pagehead">
-        <h2>Historial</h2>
-        <p>Los últimos 100 presupuestos y recibos que hiciste en este celular.</p>
+    <!-- ===================== CÓMO RESERVAR ===================== -->
+    <section id="como" class="relative overflow-hidden bg-surface py-24 lg:py-32">
+      <div class="wrap">
+        <div class="reveal max-w-[720px]">
+          <p class="eyebrow">Cómo reservar</p>
+          <h2 class="h2 mt-4">Tres minutos y listo</h2>
+          <p class="lead mt-5">Sin idas y vueltas por mensaje. Elegís las fechas, ves el precio y confirmás.</p>
+        </div>
+        <div class="relative mt-16">
+          <svg class="pointer-events-none absolute left-0 top-[34px] hidden h-[40px] w-full lg:block" viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true">
+            <path id="leash" d="M40 20 C 220 -10, 330 50, 470 20 S 760 -10, 880 20 S 1080 50, 1160 20" fill="none" stroke="var(--c-cyan)" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+          </svg>
+          <ol class="relative grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+            <li class="step reveal">
+              <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-brand text-on-brand shadow-[0_0_0_2px_var(--c-brand)]"><svg class="h-7 w-7"><use href="#i-cal"/></svg></span>
+              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan">PASO 1</p>
+              <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Elegís las fechas</h3>
+              <p class="mt-2 text-ink-2">En el calendario tocás el día que lo traés y el día que lo retirás.</p>
+            </li>
+            <li class="step reveal">
+              <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-brand text-on-brand shadow-[0_0_0_2px_var(--c-brand)]"><svg class="h-7 w-7"><use href="#i-ticket"/></svg></span>
+              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan">PASO 2</p>
+              <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Ves el presupuesto</h3>
+              <p class="mt-2 text-ink-2">Al instante, con el total en efectivo y en transferencia. Lo podés guardar como imagen.</p>
+            </li>
+            <li class="step reveal">
+              <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-brand text-on-brand shadow-[0_0_0_2px_var(--c-brand)]"><svg class="h-7 w-7"><use href="#i-wa"/></svg></span>
+              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan">PASO 3</p>
+              <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Reservás con seña</h3>
+              <p class="mt-2 text-ink-2">Nos lo mandás por WhatsApp y confirmás con el <span data-senia>30%</span>. El resto, al ingreso.</p>
+            </li>
+            <li class="step reveal">
+              <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-ball text-white shadow-[0_0_0_2px_var(--c-ball)]"><svg class="h-7 w-7"><use href="#i-paw"/></svg></span>
+              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan">PASO 4</p>
+              <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Lo traés y disfrutás</h3>
+              <p class="mt-2 text-ink-2">Te mandamos fotos para que veas cómo la pasa. Vuelve cansado y feliz.</p>
+            </li>
+          </ol>
+        </div>
       </div>
-      <div id="historyList" class="panel list"></div>
     </section>
 
-    <!-- ================= AJUSTES ================= -->
-    <section id="tab-ajustes" class="tab" aria-label="Ajustes">
-      <div class="pagehead">
-        <h2>Ajustes</h2>
-        <p>Lo que cargues acá aparece solo en cada recibo y en los links para clientes. Se guarda al escribir.</p>
+    <!-- ===================== CALCULADORA ===================== -->
+    <section id="precios" class="relative py-24 lg:py-32">
+      <div class="wrap grid items-start gap-12 lg:grid-cols-[.9fr_1.1fr] lg:gap-16">
+        <div class="reveal lg:sticky lg:top-32">
+          <p class="eyebrow">Precios</p>
+          <h2 class="h2 mt-4">¿Cuánto sale? Calculalo acá</h2>
+          <p class="lead mt-5">Elegí el servicio, los días y cuántos perros son. El precio se actualiza solo.</p>
+          <ul class="mt-8 grid gap-3" id="perks"></ul>
+        </div>
+
+        <div class="reveal rounded-[32px] border-[1.5px] border-line bg-surface p-5 shadow-[0_40px_80px_-50px_rgba(10,28,68,.45)] sm:p-8" id="calc">
+          <p class="mb-3 font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3">SERVICIO</p>
+          <div class="seg" id="cServ" role="group" aria-label="Servicio"></div>
+
+          <div class="mt-8 grid gap-8 sm:grid-cols-[1fr_auto] sm:items-end">
+            <div>
+              <div class="flex items-center justify-between">
+                <p class="font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3" id="cQtyLbl">DÍAS</p>
+              </div>
+              <div class="mt-3 flex items-center gap-4">
+                <div class="stepper">
+                  <button type="button" data-step="qty" data-d="-1" aria-label="Menos días"><svg class="h-5 w-5"><use href="#i-minus"/></svg></button>
+                  <output id="cQty" aria-live="polite">5</output>
+                  <button type="button" data-step="qty" data-d="1" aria-label="Más días"><svg class="h-5 w-5"><use href="#i-plus"/></svg></button>
+                </div>
+              </div>
+              <input type="range" class="slider mt-6" id="cRange" min="1" max="30" value="5" aria-label="Cantidad de días">
+            </div>
+            <div>
+              <p class="font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3">PERROS</p>
+              <div class="stepper mt-3">
+                <button type="button" data-step="dogs" data-d="-1" aria-label="Menos perros"><svg class="h-5 w-5"><use href="#i-minus"/></svg></button>
+                <output id="cDogs" aria-live="polite">1</output>
+                <button type="button" data-step="dogs" data-d="1" aria-label="Más perros"><svg class="h-5 w-5"><use href="#i-plus"/></svg></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="my-8 border-t-2 border-dashed border-line"></div>
+
+          <p class="text-ink-2" id="cDetail"></p>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2" id="cTotals"></div>
+          <div class="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-sky px-5 py-4" id="cSenia">
+            <span class="font-mono text-[.72rem] font-semibold tracking-[.12em] text-ink-2">RESERVÁS CON</span>
+            <span class="font-display text-[1.4rem] font-black text-brand [font-stretch:108%]" id="cSeniaV"></span>
+          </div>
+          <a href="app/#cliente" class="btn btn-primary mt-6 w-full" id="cGo">Elegir fechas y reservar<svg><use href="#i-arrow"/></svg></a>
+          <p class="mt-4 text-center text-[.88rem] text-ink-3">Precio orientativo. Con las fechas exactas armás el presupuesto final en un minuto.</p>
+        </div>
       </div>
-      <form id="cfgForm" novalidate>
-        <h3 class="legend">Tu negocio</h3>
-        <div class="panel">
-          <div class="grid2">
-            <div class="field"><label for="c-neg">Nombre del negocio</label><input id="c-neg" data-cfg="negocio"></div>
-            <div class="field"><label for="c-resp">Tu nombre</label><input id="c-resp" data-cfg="responsable"></div>
-            <div class="field"><label for="c-tel">WhatsApp <span class="opt">con 549</span></label><input id="c-tel" data-cfg="telefono" type="tel" placeholder="5491155555555"></div>
-            <div class="field"><label for="c-red">Instagram o web</label><input id="c-red" data-cfg="redes" placeholder="@miguarderia"></div>
-          </div>
-          <div class="field"><label for="c-dir">Zona o dirección</label><input id="c-dir" data-cfg="direccion"></div>
+    </section>
+
+    <!-- ===================== CÓMO LO CUIDAMOS ===================== -->
+    <section id="cuidado" class="relative overflow-hidden bg-deep py-24 text-white lg:py-32">
+      <img src="assets/img/perro.webp" alt="" class="pointer-events-none absolute -right-16 bottom-[-8%] hidden w-[340px] opacity-[.07] lg:block" aria-hidden="true">
+      <div class="wrap relative">
+        <div class="reveal max-w-[760px]">
+          <p class="eyebrow !text-[#7fd8f0]">Cómo lo cuidamos</p>
+          <h2 class="h2 mt-4 !text-white">Lo tratamos como si fuera nuestro</h2>
+          <p class="lead mt-5 !text-[#b9c8e2]">Porque para nosotros no es un trabajo más. Estas son las cosas que no negociamos.</p>
         </div>
+        <div class="mt-14 grid gap-px overflow-hidden rounded-[28px] bg-white/10 sm:grid-cols-2 lg:grid-cols-3" id="values"></div>
+      </div>
+    </section>
 
-        <h3 class="legend">Datos para transferir</h3>
-        <div class="panel">
-          <div class="grid2">
-            <div class="field"><label for="c-alias">Alias</label><input id="c-alias" data-cfg="alias"></div>
-            <div class="field"><label for="c-cbu">CBU o CVU</label><input id="c-cbu" data-cfg="cbu" inputmode="numeric"></div>
-            <div class="field"><label for="c-tit">Titular</label><input id="c-tit" data-cfg="titular"></div>
-            <div class="field"><label for="c-banco">Banco o billetera</label><input id="c-banco" data-cfg="banco"></div>
+    <!-- ===================== GALERÍA (si hay fotos) ===================== -->
+    <section id="fotos" class="py-24 lg:py-32" hidden>
+      <div class="wrap">
+        <div class="reveal flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="eyebrow">Así la pasan</p>
+            <h2 class="h2 mt-4">Fotos de la manada</h2>
           </div>
+          <a href="#" class="btn btn-ghost self-start" data-ig hidden><svg><use href="#i-ig"/></svg>Ver más en Instagram</a>
         </div>
+        <div class="mt-12 columns-2 gap-4 lg:columns-3 [&>*]:mb-4" id="gallery"></div>
+      </div>
+    </section>
 
-        <h3 class="legend">Horario habitual</h3>
-        <div class="panel">
-          <div class="grid2">
-            <div class="field"><label for="c-hin">Ingreso</label><input id="c-hin" data-cfg="horaIn" type="time"></div>
-            <div class="field"><label for="c-hout">Retiro</label><input id="c-hout" data-cfg="horaOut" type="time"></div>
-          </div>
+    <!-- ===================== OPINIONES (si hay) ===================== -->
+    <section id="opiniones" class="bg-surface py-24 lg:py-32" hidden>
+      <div class="wrap">
+        <div class="reveal">
+          <p class="eyebrow">Lo que dicen</p>
+          <h2 class="h2 mt-4">Dueños tranquilos</h2>
         </div>
+        <div class="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3" id="reviews"></div>
+      </div>
+    </section>
 
-        <h3 class="legend">Servicios</h3>
-        <p class="hint">Por día cuenta ingreso y retiro incluidos. Por noche cuenta las noches entre las dos fechas.</p>
-        <div class="panel" id="edServicios"></div>
-
-        <h3 class="legend">Recargo por tamaño</h3>
-        <p class="hint">Solo si cobrás distinto según el tamaño. Si agregás alguno, aparece para elegir en cada perro.</p>
-        <div class="panel" id="edTamanos"></div>
-
-        <h3 class="legend">Extras</h3>
-        <p class="hint">Único se cobra una vez. Por día se multiplica por los días o noches de la estadía.</p>
-        <div class="panel" id="edExtras"></div>
-
-        <h3 class="legend">Formas de pago</h3>
-        <p class="hint">Descuento en %. Un número negativo es recargo: -10 suma un 10%.</p>
-        <div class="panel" id="edPagos"></div>
-
-        <h3 class="legend">Descuento por estadía larga</h3>
-        <p class="hint">Se aplica sobre el servicio a partir de esa cantidad de días.</p>
-        <div class="panel" id="edDescEstadia"></div>
-
-        <h3 class="legend">Seña y otros descuentos</h3>
-        <div class="panel">
-          <div class="grid2">
-            <div class="field"><label for="c-senia">Seña para reservar <span class="opt">%</span></label><input id="c-senia" data-cfg="seniaPct" type="number" step="1" inputmode="numeric"></div>
-            <div class="field"><label for="c-dpa">Perro adicional <span class="opt">% desc.</span></label><input id="c-dpa" data-cfg="descPerroAdicional" type="number" step="0.5" inputmode="decimal"></div>
-            <div class="field"><label for="c-val">Validez del presupuesto <span class="opt">días</span></label><input id="c-val" data-cfg="validez" type="number" min="0" inputmode="numeric"></div>
-            <div class="field"><label for="c-num">Próximo N° de recibo</label><input id="c-num" data-cfg="nextNumero" type="number" min="1" inputmode="numeric"></div>
+    <!-- ===================== PREGUNTAS ===================== -->
+    <section id="preguntas" class="py-24 lg:py-32">
+      <div class="wrap grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-20">
+        <div class="reveal">
+          <p class="eyebrow">Preguntas frecuentes</p>
+          <h2 class="h2 mt-4">Lo que todos nos preguntan</h2>
+          <div class="mt-10 rounded-[28px] bg-sky p-7">
+            <p class="font-display text-[1.35rem] font-extrabold leading-tight [font-stretch:108%]">¿Te quedó alguna duda?</p>
+            <p class="mt-2 text-ink-2">Escribinos y te respondemos en el día.</p>
+            <a href="#" class="btn btn-wa mt-5" data-wa><svg><use href="#i-wa"/></svg>Escribinos por WhatsApp</a>
           </div>
         </div>
+        <div class="reveal border-t-[1.5px] border-line" id="faq"></div>
+      </div>
+    </section>
 
-        <h3 class="legend">Condiciones</h3>
-        <p class="hint">Una por renglón. Salen al pie de cada recibo con un tilde.</p>
-        <div class="panel">
-          <div class="field"><label for="c-cond" class="sr">Condiciones</label><textarea id="c-cond" data-cfg="condiciones" rows="7"></textarea></div>
+    <!-- ===================== CIERRE ===================== -->
+    <section class="px-[max(12px,env(safe-area-inset-left))] pb-6">
+      <div class="relative mx-auto max-w-[1360px] overflow-hidden rounded-[36px] bg-[#1d4fa6] px-6 py-20 text-center text-white dark:bg-[#15367a] sm:py-28">
+        <div class="stripes absolute inset-x-0 top-0 h-3 opacity-90" aria-hidden="true"></div>
+        <span class="cta-ball absolute left-[7%] top-[9%] h-9 w-9 rounded-full bg-ball shadow-[inset_-4px_-6px_0_rgba(0,0,0,.18)] sm:left-[12%] sm:top-[22%] sm:h-14 sm:w-14" aria-hidden="true"></span>
+        <span class="absolute right-[10%] bottom-[18%] h-5 w-5 rounded-full bg-[#74c3ea]" aria-hidden="true"></span>
+        <p class="font-mono text-[.8rem] font-semibold tracking-[.18em] text-[#a9dcf2]">RESERVÁ CON TIEMPO</p>
+        <h2 class="display mx-auto mt-5 max-w-[14ch] text-[clamp(2.6rem,7.4vw,5.6rem)]">¿Cuándo lo traés?</h2>
+        <p class="mx-auto mt-6 max-w-[46ch] text-[1.12rem] text-[#d4e2fb]">Las fechas de vacaciones y fines de semana largos se llenan rápido. Armá tu presupuesto y asegurá su lugar.</p>
+        <div class="mt-10 flex flex-wrap justify-center gap-3">
+          <a href="app/#cliente" class="btn bg-white text-[#1d4fa6] hover:-translate-y-0.5">Armar mi presupuesto<svg><use href="#i-arrow"/></svg></a>
+          <a href="#" class="btn btn-wa" data-wa><svg><use href="#i-wa"/></svg>WhatsApp</a>
         </div>
-
-        <h3 class="legend">Copia de seguridad</h3>
-        <div class="panel">
-          <div class="row-btns">
-            <button type="button" class="btn" id="btnExport"><svg class="ic"><use href="#i-down"/></svg>Exportar</button>
-            <label class="btn" for="fileImport"><svg class="ic"><use href="#i-share"/></svg>Importar</label>
-            <input type="file" id="fileImport" accept="application/json" hidden>
-          </div>
-          <button type="button" class="btn btn-danger btn-block" id="btnFactory">Volver a los valores de fábrica</button>
-        </div>
-      </form>
+      </div>
     </section>
   </main>
 
-  <nav class="tabbar" id="tabs" aria-label="Secciones">
-    <button data-tab="recibo" class="active"><svg><use href="#i-ticket"/></svg><span>Nuevo</span></button>
-    <button data-tab="link"><svg><use href="#i-link"/></svg><span>Link</span></button>
-    <button data-tab="historial"><svg><use href="#i-list"/></svg><span>Historial</span></button>
-    <button data-tab="ajustes"><svg><use href="#i-sliders"/></svg><span>Ajustes</span></button>
-  </nav>
-
-  <!-- ================= HOJA DEL RECIBO ================= -->
-  <div class="sheet" id="modal" hidden>
-    <div class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="sheet-head">
-        <h2 id="modalTitle">Recibo listo</h2>
-        <button class="iconbtn" id="btnClose" aria-label="Cerrar"><svg class="ic"><use href="#i-x"/></svg></button>
+  <!-- ===================== PIE ===================== -->
+  <footer class="pb-[calc(env(safe-area-inset-bottom)+100px)] pt-16 sm:pb-12">
+    <div class="wrap grid gap-12 md:grid-cols-[1.3fr_1fr_1fr]">
+      <div>
+        <img src="assets/img/logo.webp" alt="Inquietos Caninos" class="logo-img w-[190px]" loading="lazy">
+        <p class="mt-5 max-w-[34ch] text-ink-2">Paseos, guardería de día y estadías para perros que no se quedan quietos.</p>
       </div>
-      <div class="preview"><img id="previewImg" alt="Vista previa del recibo"></div>
-      <div class="sheet-actions">
-        <button class="btn btn-primary" id="btnShareImg"><svg class="ic"><use href="#i-share"/></svg>Compartir imagen</button>
-        <button class="btn" id="btnDownload"><svg class="ic"><use href="#i-down"/></svg>Guardar PNG</button>
-        <a class="btn btn-wa" id="btnWaSend" target="_blank" rel="noopener"><svg class="ic"><use href="#i-wa"/></svg>WhatsApp</a>
+      <div>
+        <p class="font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3">CONTACTO</p>
+        <ul class="mt-4 grid gap-3 text-ink-2" id="contact"></ul>
       </div>
-    </div>
-  </div>
-
-  <div class="confirm" id="confirm" hidden>
-    <div class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="confirmMsg">
-      <p id="confirmMsg"></p>
-      <div class="row-btns">
-        <button class="btn" id="confirmNo">Cancelar</button>
-        <button class="btn btn-danger-solid" id="confirmYes">Sí</button>
+      <div>
+        <p class="font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3">SECCIONES</p>
+        <ul class="mt-4 grid gap-3 font-semibold text-ink-2">
+          <li><a class="hover:text-brand" href="#servicios">Servicios</a></li>
+          <li><a class="hover:text-brand" href="#precios">Precios</a></li>
+          <li><a class="hover:text-brand" href="#preguntas">Preguntas</a></li>
+          <li><a class="hover:text-brand" href="app/">Acceso cuidador</a></li>
+        </ul>
       </div>
     </div>
+    <div class="wrap mt-14 flex flex-col gap-2 border-t-[1.5px] border-line pt-6 text-[.88rem] text-ink-3 sm:flex-row sm:justify-between">
+      <p>© <span id="year">2026</span> Inquietos Caninos</p>
+      <p>Hecho con cariño y muchas pelotitas.</p>
+    </div>
+  </footer>
+
+  <!-- barra fija en el celular -->
+  <div id="mobileBar" class="fixed inset-x-3 z-40 flex translate-y-[140%] gap-2 rounded-full bg-surface/90 p-2 shadow-[0_20px_40px_-12px_rgba(10,28,68,.45)] ring-1 ring-line backdrop-blur-lg transition-transform duration-500 sm:hidden" style="bottom:calc(env(safe-area-inset-bottom) + 12px)">
+    <a href="#precios" class="btn btn-primary !min-h-[48px] flex-1">Calcular presupuesto</a>
+    <a href="#" class="btn btn-wa !min-h-[48px] !w-[48px] !px-0" data-wa aria-label="WhatsApp"><svg><use href="#i-wa"/></svg></a>
   </div>
 
-  <div class="toast" id="toast" role="status" hidden></div>
-
-  <script src="app.js"></script>
+  <script src="config.js"></script>
+  <script src="assets/vendor/gsap.min.js" defer></script>
+  <script src="assets/vendor/ScrollTrigger.min.js" defer></script>
+  <script src="assets/vendor/lenis.min.js" defer></script>
+  <script src="assets/landing.js" defer></script>
 </body>
 </html>
