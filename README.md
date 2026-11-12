@@ -30,6 +30,26 @@ Si un valor lo cambiaste a mano desde Ajustes en la app, la app respeta tu cambi
 - Cómo lo cuidan, fotos, opiniones y preguntas frecuentes.
 - Botones de WhatsApp en toda la página, modo claro y oscuro, y barra fija en el celular.
 
+## Calidad (medida con Lighthouse de Google)
+
+| | Rendimiento | Accesibilidad | Buenas prácticas | SEO |
+|---|---|---|---|---|
+| Página en compu | 100 | 100 | 100 | 100 |
+| Página en celular | 87* | 100 | 100 | 100 |
+| App | 95 | 100 | 100 | no se indexa a propósito |
+
+\* Simulando 4G lenta. Con buena conexión, el contenido principal aparece en 0,2 s.
+
+Incluye:
+- Vista previa con imagen al compartir el link por WhatsApp o redes.
+- Datos de negocio local para Google, mapa del sitio, `robots.txt` y página 404 propia.
+- Navegación completa con teclado: salto al contenido y menú que retiene el foco.
+- Contraste de colores legible y respeto por "reducir movimiento" del sistema.
+
+Si algún día usás un dominio propio (por ejemplo `inquietoscaninos.com.ar`), hay que reemplazar
+`https://0ariell.github.io/WebGuarderiaCanina/` por el dominio nuevo en `index.html`, `app/index.html`,
+`sitemap.xml` y `robots.txt`.
+
 ## La app de presupuestos (`/app/`)
 
 - Calendario de ingreso y retiro, varios perros, extras y descuentos.

@@ -6,6 +6,7 @@
 @import "tailwindcss" source(none);
 @source "../index.html";
 @source "../assets/landing.js";
+@source "../404.html";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
@@ -19,32 +20,33 @@
   --c-surface: #ffffff;
   --c-ink: #0c2350;
   --c-ink-2: #4a5f82;
-  --c-ink-3: #8a9bb5;
+  --c-ink-3: #5f7393;
   --c-line: #dbe6f0;
   --c-brand: #1d4fa6;
   --c-brand-2: #163f88;
   --c-deep: #0a1c44;
   --c-cyan: #13a6cb;
+  --c-cyan-ink: #0a7896;
   --c-sky: #e3f2fb;
   --c-sky-2: #c9e8f6;
   --c-ball: #e3262b;
   --c-sun: #f2b227;
   --c-on-brand: #ffffff;
-  --c-wa: #1fa855;
+  --c-wa: #0f7d3e;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --c-bg: #06102a; --c-surface: #0d1b3b; --c-ink: #eaf1fb; --c-ink-2: #a6b8d4; --c-ink-3: #6f84a6;
-    --c-line: #1d3160; --c-brand: #6d9bff; --c-brand-2: #8db2ff; --c-deep: #030a1d; --c-cyan: #3cc8ea;
-    --c-sky: #0e2547; --c-sky-2: #14345e; --c-ball: #ff5048; --c-sun: #ffc24a; --c-on-brand: #04112b; --c-wa: #2bc06a;
+    --c-bg: #06102a; --c-surface: #0d1b3b; --c-ink: #eaf1fb; --c-ink-2: #a6b8d4; --c-ink-3: #8d9fbd;
+    --c-line: #1d3160; --c-cyan-ink: #3cc8ea; --c-brand: #6d9bff; --c-brand-2: #8db2ff; --c-deep: #030a1d; --c-cyan: #3cc8ea;
+    --c-sky: #0e2547; --c-sky-2: #14345e; --c-ball: #ff5048; --c-sun: #ffc24a; --c-on-brand: #04112b; --c-wa: #0f7d3e;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --c-bg: #06102a; --c-surface: #0d1b3b; --c-ink: #eaf1fb; --c-ink-2: #a6b8d4; --c-ink-3: #6f84a6;
-  --c-line: #1d3160; --c-brand: #6d9bff; --c-brand-2: #8db2ff; --c-deep: #030a1d; --c-cyan: #3cc8ea;
-  --c-sky: #0e2547; --c-sky-2: #14345e; --c-ball: #ff5048; --c-sun: #ffc24a; --c-on-brand: #04112b; --c-wa: #2bc06a;
+  --c-bg: #06102a; --c-surface: #0d1b3b; --c-ink: #eaf1fb; --c-ink-2: #a6b8d4; --c-ink-3: #8d9fbd;
+  --c-line: #1d3160; --c-cyan-ink: #3cc8ea; --c-brand: #6d9bff; --c-brand-2: #8db2ff; --c-deep: #030a1d; --c-cyan: #3cc8ea;
+  --c-sky: #0e2547; --c-sky-2: #14345e; --c-ball: #ff5048; --c-sun: #ffc24a; --c-on-brand: #04112b; --c-wa: #0f7d3e;
   color-scheme: dark;
 }
 
@@ -59,6 +61,7 @@
   --color-brand-2: var(--c-brand-2);
   --color-deep: var(--c-deep);
   --color-cyan: var(--c-cyan);
+  --color-cyan-ink: var(--c-cyan-ink);
   --color-sky: var(--c-sky);
   --color-sky-2: var(--c-sky-2);
   --color-ball: var(--c-ball);
@@ -89,7 +92,7 @@
   .wrap { width: 100%; max-width: 1200px; margin-inline: auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
   .display { font-family: var(--font-display); font-stretch: 118%; font-weight: 900; letter-spacing: -.025em; line-height: .92; text-transform: uppercase; }
   .h2 { font-family: var(--font-display); font-stretch: 112%; font-weight: 850; letter-spacing: -.02em; line-height: 1.02; font-size: clamp(2rem, 4.6vw, 3.4rem); color: var(--c-ink); }
-  .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-weight: 600; font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--c-cyan); }
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-weight: 600; font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--c-cyan-ink); }
   .eyebrow::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c-ball); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-ball) 18%, transparent); }
   .lead { font-size: clamp(1.05rem, 1.6vw, 1.22rem); color: var(--c-ink-2); max-width: 58ch; }
 
@@ -179,6 +182,11 @@
 
   .grain { background-image: radial-gradient(color-mix(in srgb, var(--c-brand) 14%, transparent) 1.2px, transparent 1.3px); background-size: 22px 22px; }
 }
+
+/* arranque del titular sin parpadeo (la clase .anim la pone el <head> y la saca landing.js) */
+.anim .h-word { transform: translateY(110%); }
+.anim .h-in { transform: translateY(24px); }
+.anim #iDot { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .marquee { animation: none; }

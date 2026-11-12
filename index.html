@@ -1,24 +1,47 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-AR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Inquietos Caninos · Paseos, guardería y estadías</title>
-  <meta name="description" content="Paseos, guardería de día y estadías para perros. Grupos chicos, rutina de casa y fotos todos los días. Calculá tu presupuesto al instante.">
+  <title>Inquietos Caninos · Paseos, guardería y estadías para perros</title>
+  <meta name="description" content="Paseos, guardería de día y estadías para perros. Grupos chicos, rutina de casa y fotos para que sepas cómo la pasa. Calculá tu presupuesto al instante.">
+  <link rel="canonical" href="https://0ariell.github.io/WebGuarderiaCanina/">
+  <meta name="robots" content="index, follow, max-image-preview:large">
   <meta name="theme-color" content="#f6fafd" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#06102a" media="(prefers-color-scheme: dark)">
-  <meta property="og:title" content="Inquietos Caninos">
-  <meta property="og:description" content="Paseos, guardería de día y estadías para perros que no se quedan quietos.">
-  <meta property="og:image" content="icons/icon-512.png">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- vista previa al compartir (WhatsApp, Instagram, Facebook, X) -->
   <meta property="og:type" content="website">
-  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <meta property="og:locale" content="es_AR">
+  <meta property="og:site_name" content="Inquietos Caninos">
+  <meta property="og:url" content="https://0ariell.github.io/WebGuarderiaCanina/">
+  <meta property="og:title" content="Inquietos Caninos · Para perros que no se quedan quietos">
+  <meta property="og:description" content="Paseos, guardería de día y estadías. Calculá tu presupuesto al instante y reservá por WhatsApp.">
+  <meta property="og:image" content="https://0ariell.github.io/WebGuarderiaCanina/assets/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Inquietos Caninos: paseos, guardería y estadías para perros">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="icon" href="favicon.ico" sizes="32x32">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preload" href="fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/onest.woff2" as="font" type="font/woff2" crossorigin>
-  <script>if(/^#(c=|cliente)/.test(location.hash))location.replace('app/'+location.hash);try{var t=localStorage.getItem('ic.theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+  <script>
+    if (/^#(c=|cliente)/.test(location.hash)) location.replace('app/' + location.hash);
+    try { var t = localStorage.getItem('ic.theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+    // el titular arranca oculto solo si se va a animar; si algo falla, se muestra igual a los 2,5 s
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.documentElement.classList.add('anim');
+      setTimeout(function () { document.documentElement.classList.remove('anim'); }, 2500);
+    }
+  </script>
   <link rel="stylesheet" href="assets/landing.css">
 </head>
 <body>
+  <a href="#contenido" class="fixed left-4 top-4 z-[100] -translate-y-24 rounded-full bg-brand px-5 py-3 font-bold text-on-brand shadow-lg transition-transform focus:translate-y-[env(safe-area-inset-top)]">Saltar al contenido</a>
   <svg width="0" height="0" class="absolute" aria-hidden="true">
     <defs>
       <symbol id="i-casa" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14.5 16 5l11 9.5"/><path d="M8 12.5V27h16V12.5"/><path d="M19.5 17.5a3.5 3.5 0 1 1-3.9-3.5 2.8 2.8 0 0 0 3.9 3.5z"/></symbol>
@@ -97,7 +120,10 @@
     </div>
   </div>
 
-  <main>
+  <noscript>
+    <div class="fixed inset-x-0 bottom-0 z-[90] bg-brand px-5 py-4 text-center font-semibold text-on-brand">Para ver precios y armar tu presupuesto, activá JavaScript. También podés abrir <a class="underline" href="app/#cliente">el formulario de presupuesto</a>.</div>
+  </noscript>
+  <main id="contenido" tabindex="-1" class="outline-none">
     <!-- ===================== PORTADA ===================== -->
     <section id="inicio" class="relative overflow-hidden pt-[calc(env(safe-area-inset-top)+110px)] pb-20 lg:pt-[150px] lg:pb-28">
       <div class="grain pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(70%_60%_at_70%_40%,#000,transparent)]" aria-hidden="true"></div>
@@ -127,12 +153,12 @@
             <div class="absolute inset-x-0 bottom-0 h-[17%] bg-sky-2"></div>
           </div>
           <div class="absolute inset-0 rounded-full border-2 border-dashed border-sky-2 hero-ring"></div>
-          <img src="assets/img/perro.webp" alt="" class="hero-dog absolute bottom-[9%] left-[40%] w-[40%] sm:left-[28%] sm:w-[38%] drop-shadow-[0_18px_24px_rgba(10,28,68,.25)]" width="560" height="1036">
+          <img src="assets/img/perro.webp" alt="" class="hero-dog absolute bottom-[9%] left-[40%] w-[40%] sm:left-[28%] sm:w-[38%] drop-shadow-[0_18px_24px_rgba(10,28,68,.25)]" width="560" height="1036" decoding="async">
           <span id="ball" class="absolute left-[56%] top-[14%] h-[11%] w-[11%] rounded-full shadow-[inset_-6px_-8px_0_rgba(0,0,0,.18),0_10px_18px_rgba(227,38,43,.35)]" style="background:radial-gradient(circle at 35% 30%,#ff6b62,var(--c-ball) 55%,#b8141c)"></span>
 
           <!-- ticket -->
           <div class="ticket float-a absolute bottom-[1%] left-0 w-[50%] max-w-[270px] p-3.5 sm:left-[-6%] sm:bottom-[3%] sm:w-[56%] sm:p-5" style="--perf:64%">
-            <div class="flex items-center justify-between font-mono text-[.62rem] font-semibold tracking-[.14em] text-[#13a6cb]"><span>PRESUPUESTO</span><span class="text-[#8a9bb5]">N° 0128</span></div>
+            <div class="flex items-center justify-between font-mono text-[.62rem] font-semibold tracking-[.14em] text-[#0a7896]"><span>PRESUPUESTO</span><span class="text-[#8a9bb5]">N° 0128</span></div>
             <p class="display mt-2 text-[1.6rem] text-[#1d4fa6] sm:text-[1.9rem]" id="tkName">Tilo</p>
             <p class="mt-1 font-mono text-[.7rem] font-semibold tracking-wider text-[#4a5f82]" id="tkLine">ESTADÍA · 5 DÍAS</p>
             <div class="my-3 border-t-2 border-dashed border-[#dbe6f0]"></div>
@@ -189,25 +215,25 @@
           <ol class="relative grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
             <li class="step reveal">
               <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-brand text-on-brand shadow-[0_0_0_2px_var(--c-brand)]"><svg class="h-7 w-7"><use href="#i-cal"/></svg></span>
-              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan">PASO 1</p>
+              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan-ink">PASO 1</p>
               <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Elegís las fechas</h3>
               <p class="mt-2 text-ink-2">En el calendario tocás el día que lo traés y el día que lo retirás.</p>
             </li>
             <li class="step reveal">
               <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-brand text-on-brand shadow-[0_0_0_2px_var(--c-brand)]"><svg class="h-7 w-7"><use href="#i-ticket"/></svg></span>
-              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan">PASO 2</p>
+              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan-ink">PASO 2</p>
               <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Ves el presupuesto</h3>
               <p class="mt-2 text-ink-2">Al instante, con el total en efectivo y en transferencia. Lo podés guardar como imagen.</p>
             </li>
             <li class="step reveal">
               <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-brand text-on-brand shadow-[0_0_0_2px_var(--c-brand)]"><svg class="h-7 w-7"><use href="#i-wa"/></svg></span>
-              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan">PASO 3</p>
+              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan-ink">PASO 3</p>
               <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Reservás con seña</h3>
               <p class="mt-2 text-ink-2">Nos lo mandás por WhatsApp y confirmás con el <span data-senia>30%</span>. El resto, al ingreso.</p>
             </li>
             <li class="step reveal">
               <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-ball text-white shadow-[0_0_0_2px_var(--c-ball)]"><svg class="h-7 w-7"><use href="#i-paw"/></svg></span>
-              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan">PASO 4</p>
+              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan-ink">PASO 4</p>
               <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Lo traés y disfrutás</h3>
               <p class="mt-2 text-ink-2">Te mandamos fotos para que veas cómo la pasa. Vuelve cansado y feliz.</p>
             </li>
@@ -263,6 +289,7 @@
             <span class="font-display text-[1.4rem] font-black text-brand [font-stretch:108%]" id="cSeniaV"></span>
           </div>
           <a href="app/#cliente" class="btn btn-primary mt-6 w-full" id="cGo">Elegir fechas y reservar<svg><use href="#i-arrow"/></svg></a>
+          <a href="#" class="btn btn-ghost mt-3 w-full" id="cWa" hidden><svg class="text-wa"><use href="#i-wa"/></svg>Consultar este precio por WhatsApp</a>
           <p class="mt-4 text-center text-[.88rem] text-ink-3">Precio orientativo. Con las fechas exactas armás el presupuesto final en un minuto.</p>
         </div>
       </div>
@@ -331,6 +358,7 @@
         <p class="font-mono text-[.8rem] font-semibold tracking-[.18em] text-[#a9dcf2]">RESERVÁ CON TIEMPO</p>
         <h2 class="display mx-auto mt-5 max-w-[14ch] text-[clamp(2.6rem,7.4vw,5.6rem)]">¿Cuándo lo traés?</h2>
         <p class="mx-auto mt-6 max-w-[46ch] text-[1.12rem] text-[#d4e2fb]">Las fechas de vacaciones y fines de semana largos se llenan rápido. Armá tu presupuesto y asegurá su lugar.</p>
+        <ul class="mx-auto mt-8 flex max-w-[640px] flex-wrap justify-center gap-x-6 gap-y-2 text-[.95rem] font-semibold text-[#d4e2fb]" id="ctaInfo"></ul>
         <div class="mt-10 flex flex-wrap justify-center gap-3">
           <a href="app/#cliente" class="btn bg-white text-[#1d4fa6] hover:-translate-y-0.5">Armar mi presupuesto<svg><use href="#i-arrow"/></svg></a>
           <a href="#" class="btn btn-wa" data-wa><svg><use href="#i-wa"/></svg>WhatsApp</a>
@@ -362,7 +390,7 @@
     </div>
     <div class="wrap mt-14 flex flex-col gap-2 border-t-[1.5px] border-line pt-6 text-[.88rem] text-ink-3 sm:flex-row sm:justify-between">
       <p>© <span id="year">2026</span> Inquietos Caninos</p>
-      <p>Hecho con cariño y muchas pelotitas.</p>
+      <p class="flex items-center gap-4">Hecho con cariño y muchas pelotitas. <a href="#inicio" class="inline-flex items-center gap-1.5 font-semibold text-brand hover:underline">Volver arriba<svg class="h-4 w-4 -rotate-90"><use href="#i-arrow"/></svg></a></p>
     </div>
   </footer>
 

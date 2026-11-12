@@ -1,10 +1,20 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-AR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Inquietos Caninos</title>
-  <meta name="description" content="Presupuestos y recibos de estadía, guardería y paseos para perros.">
+  <meta name="description" content="Armá el presupuesto para tu perro: elegí las fechas y te sale el total al instante.">
+  <meta name="robots" content="noindex">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_AR">
+  <meta property="og:site_name" content="Inquietos Caninos">
+  <meta property="og:title" content="Armá el presupuesto para tu perro">
+  <meta property="og:description" content="Elegí las fechas y te sale el total al instante. Inquietos Caninos: paseos, guardería y estadías.">
+  <meta property="og:image" content="https://0ariell.github.io/WebGuarderiaCanina/assets/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0b1530" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
@@ -116,7 +126,7 @@
                 <button type="button" class="iconbtn" id="calNext" aria-label="Mes siguiente"><svg class="ic"><use href="#i-right"/></svg></button>
               </div>
               <div class="cal-dow" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-              <div class="cal-grid" id="calGrid" role="grid"></div>
+              <div class="cal-grid" id="calGrid" role="group" aria-label="Días del mes"></div>
             </div>
             <p class="cal-hint" id="calHint"></p>
             <div class="cal-tools" id="calTools">

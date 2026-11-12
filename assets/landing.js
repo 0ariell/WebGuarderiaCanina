@@ -38,6 +38,29 @@
   }
   if (C.horario) contact.push(`<li class="flex items-start gap-3">${icon('clock', 'mt-0.5 h-5 w-5 flex-none text-cyan')}<span>${esc(C.horario)}</span></li>`);
   $('#contact').innerHTML = contact.join('');
+  const info = [];
+  if (C.zona) info.push(`<li class="flex items-center gap-2">${icon('pin', 'h-5 w-5 text-[#7fd8f0]')}${esc(C.zona)}</li>`);
+  if (C.horario) info.push(`<li class="flex items-center gap-2">${icon('clock', 'h-5 w-5 text-[#7fd8f0]')}${esc(C.horario)}</li>`);
+  if (ig) info.push(`<li><a class="flex items-center gap-2 hover:text-white" href="https://instagram.com/${esc(ig)}" target="_blank" rel="noopener">${icon('ig', 'h-5 w-5 text-[#7fd8f0]')}@${esc(ig)}</a></li>`);
+  $('#ctaInfo').innerHTML = info.join('');
+
+  /* ---------------- datos estructurados para Google (negocio local) ---------------- */
+  try {
+    const ld = {
+      '@context': 'https://schema.org', '@type': 'LocalBusiness', '@id': location.origin + location.pathname + '#negocio',
+      name: C.negocio || 'Inquietos Caninos', url: location.origin + location.pathname,
+      image: new URL('assets/img/og.jpg', location.href).href, logo: new URL('icons/logo.png', location.href).href,
+      description: 'Paseos, guardería de día y estadías para perros.',
+      areaServed: C.zona || undefined, priceRange: '$$',
+      telephone: wa ? '+' + wa : undefined,
+      sameAs: ig ? [`https://instagram.com/${ig}`] : undefined,
+      address: C.direccion || C.zona ? { '@type': 'PostalAddress', streetAddress: C.direccion || undefined, addressLocality: C.zona || undefined, addressCountry: 'AR' } : undefined,
+      makesOffer: (C.servicios || []).map((s) => ({ '@type': 'Offer', name: s.nombre, priceCurrency: 'ARS', price: s.precio,
+        itemOffered: { '@type': 'Service', name: s.nombre, description: s.bajada || undefined } })),
+    };
+    const el = document.createElement('script'); el.type = 'application/ld+json'; el.textContent = JSON.stringify(ld);
+    document.head.appendChild(el);
+  } catch { /* opcional */ }
 
   /* ---------------- franja ---------------- */
   const words = [...servicios.map((s) => s.nombre), 'Juego', 'Descanso', 'Mimos', 'Fotos'];
@@ -129,12 +152,20 @@
     r.totals.forEach((t, i) => {
       const el = box.children[i];
       el.classList.toggle('best', r.totals.length > 1 && t.total === r.best);
-      el.querySelector('.tag').innerHTML = t.d > 0 ? `<span class="rounded-full bg-ball px-2 py-0.5 text-white">−${pct(t.d)}</span>` : '';
+      el.querySelector('.tag').innerHTML = t.d > 0 ? `<span class="rounded-full bg-[#c41d24] px-2 py-0.5 text-[.75rem] font-bold text-white">−${pct(t.d)}</span>` : '';
       tween($('#cT' + i), t.total);
     });
     $('#cSenia').hidden = !r.senia;
     tween($('#cSeniaV'), r.senia);
     $('#cGo').href = `app/#cliente&s=${calc.s}&p=${calc.dogs}`;
+    if (wa) {
+      const lines = [`¡Hola! Quería consultar por ${r.s.nombre.toLowerCase()}:`,
+        `• ${calc.dogs} ${calc.dogs === 1 ? 'perro' : 'perros'}, ${calc.qty} ${calc.qty === 1 ? u1 : u2}`,
+        ...r.totals.map((t) => `• ${t.nombre ? 'Total ' + t.nombre.toLowerCase() : 'Total'}: ${money(t.total)}`),
+        '¿Tenés lugar? Te paso las fechas.'];
+      const w = $('#cWa'); w.hidden = false; w.target = '_blank'; w.rel = 'noopener';
+      w.href = `https://wa.me/${wa}?text=${encodeURIComponent(lines.join('\n'))}`;
+    }
   }
   $('#calc').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
@@ -230,10 +261,19 @@
     menu.classList.toggle('hidden', !open);
     $('#menuBtn').setAttribute('aria-expanded', open);
     document.documentElement.style.overflow = open ? 'hidden' : '';
+    // el resto de la página queda fuera del alcance del teclado mientras el menú está abierto
+    ['#nav', 'main', 'footer', '#mobileBar'].forEach((sel) => { const el = $(sel); if (el) el.inert = open; });
     if (lenis) open ? lenis.stop() : lenis.start();
-    if (open && window.gsap && !reduce) window.gsap.from('#menu .menu-link', { y: 30, opacity: 0, stagger: .05, duration: .5, ease: 'power3.out' });
-    if (open) $('#menuClose').focus();
+    if (open && window.gsap && !reduce) window.gsap.from('#menu .menu-link', { y: 30, opacity: 0, stagger: .05, duration: .5, ease: 'power3.out', clearProps: 'all' });
+    if (open) $('#menuClose').focus(); else $('#menuBtn').focus({ preventScroll: true });
   }
+  menu.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const f = $$('a, button', menu).filter((x) => x.offsetParent);
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
   $('#menuBtn').addEventListener('click', () => openMenu(true));
   $('#menuClose').addEventListener('click', () => openMenu(false));
   $$('#menu a').forEach((a) => a.addEventListener('click', () => openMenu(false)));
@@ -271,13 +311,22 @@
   }
   $$('a[href^="#"]').forEach((a) => a.addEventListener('click', (e) => {
     const id = a.getAttribute('href'); if (id.length < 2) return;
-    e.preventDefault(); goTo(id); history.replaceState(null, '', id);
+    e.preventDefault(); goTo(id); history.replaceState(null, '', id === '#inicio' ? location.pathname : id);
+    // el foco acompaña al scroll (teclado y lectores de pantalla)
+    const target = $(id);
+    if (target) { if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true }); }
   }));
 
   window.addEventListener('DOMContentLoaded', () => {
     const gsap = window.gsap, ST = window.ScrollTrigger;
-    if (!gsap || reduce) return;
+    const root = document.documentElement;
+    if (!gsap || reduce) { root.classList.remove('anim'); return; }
     if (ST) gsap.registerPlugin(ST);
+    // estado inicial explícito; recién ahí se saca la clase que lo ocultaba desde el <head>
+    gsap.set('.h-word', { y: 0, yPercent: 110 });
+    gsap.set('.h-in', { y: 24 });
+    gsap.set('#iDot', { y: -260, opacity: 1 });
+    root.classList.remove('anim');
 
     if (window.Lenis) {
       lenis = new window.Lenis({ lerp: .11, smoothWheel: true });
@@ -288,9 +337,9 @@
 
     /* portada */
     const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
-    tl.from('.h-word', { yPercent: 110, duration: 1.1, stagger: .09 })
-      .from('#iDot', { y: -260, duration: .9, ease: 'bounce.out' }, .55)
-      .from('.h-in', { y: 24, opacity: 0, duration: .8, stagger: .08 }, .35)
+    tl.to('.h-word', { yPercent: 0, duration: 1.1, stagger: .09 })
+      .to('#iDot', { y: 0, duration: .9, ease: 'bounce.out' }, .55)
+      .to('.h-in', { y: 0, duration: .9, stagger: .08 }, .2)
       .from('#heroArt > div:first-child', { scale: .6, opacity: 0, duration: 1.2, ease: 'elastic.out(1,.7)' }, .2)
       .from('.hero-dog', { y: 80, opacity: 0, duration: 1 }, .45)
       .from('#ball', { y: -420, duration: 1.3, ease: 'bounce.out' }, .7)
