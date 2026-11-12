@@ -26,7 +26,8 @@ Si un valor lo cambiaste a mano desde Ajustes en la app, la app respeta tu cambi
 - Portada con el logo animado: la pelotita rebota.
 - Servicios con precio y lo que incluye cada uno.
 - Cómo reservar, en cuatro pasos.
-- **Calculadora en vivo:** servicio, días y cantidad de perros, con los totales por forma de pago y la seña. El botón abre la app con todo cargado para elegir las fechas.
+- **Aviso destacado** arriba del titular (por ejemplo, "Verano y fiestas se llenan rápido"). Se cambia u oculta en `aviso` dentro de `config.js`.
+- **Calculadora en vivo:** servicio, días, cantidad de perros y extras, con los totales por forma de pago y la seña. Si faltan pocos días para un descuento por estadía larga, lo avisa con un botón para sumarlos. El botón final abre la app con todo cargado (servicio, perros y extras) para elegir las fechas.
 - Cómo lo cuidan, fotos, opiniones y preguntas frecuentes.
 - Botones de WhatsApp en toda la página, modo claro y oscuro, y barra fija en el celular.
 
@@ -35,8 +36,8 @@ Si un valor lo cambiaste a mano desde Ajustes en la app, la app respeta tu cambi
 | | Rendimiento | Accesibilidad | Buenas prácticas | SEO |
 |---|---|---|---|---|
 | Página en compu | 100 | 100 | 100 | 100 |
-| Página en celular | 87* | 100 | 100 | 100 |
-| App | 95 | 100 | 100 | no se indexa a propósito |
+| Página en celular | 88* | 100 | 100 | 100 |
+| App | 97 | 100 | 100 | no se indexa a propósito |
 
 \* Simulando 4G lenta. Con buena conexión, el contenido principal aparece en 0,2 s.
 
@@ -54,7 +55,10 @@ Si algún día usás un dominio propio (por ejemplo `inquietoscaninos.com.ar`), 
 
 - Calendario de ingreso y retiro, varios perros, extras y descuentos.
 - Presupuesto o recibo en imagen PNG, para compartir por WhatsApp.
-- Link para clientes, historial y ajustes.
+- Link para clientes y ajustes.
+- **Historial con buscador y estados** (enviado, señado, pagado, cancelado), filtro por estado y botón para **duplicar** un presupuesto con fechas nuevas.
+- **Primeros pasos:** si faltan tu WhatsApp, alias o nombre, te lo avisa y te lleva directo al campo.
+- Los errores del formulario aparecen pegados al campo que falta.
 - Se instala en el celular y funciona sin internet.
 
 ## Tecnologías

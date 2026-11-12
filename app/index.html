@@ -22,6 +22,7 @@
   <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
   <link rel="preload" href="../fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../fonts/onest.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../fonts/plexmono-600.woff2" as="font" type="font/woff2" crossorigin>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Inquietos">
@@ -79,6 +80,17 @@
       <div class="pagehead" id="adminHead">
         <p class="eyebrow" id="todayLbl"></p>
         <h2>Nuevo presupuesto</h2>
+      </div>
+
+      <div class="setup" id="setup" role="region" aria-label="Primeros pasos" hidden>
+        <div>
+          <p class="setup-t">Te falta completar tus datos</p>
+          <p class="setup-d" id="setupTxt"></p>
+        </div>
+        <div class="row-btns">
+          <button type="button" class="btn btn-primary btn-sm" id="setupGo">Completar ahora</button>
+          <button type="button" class="btn btn-quiet btn-sm" id="setupLater">Más tarde</button>
+        </div>
       </div>
 
       <form id="form" autocomplete="on" novalidate>
@@ -217,7 +229,17 @@
     <section id="tab-historial" class="tab" aria-label="Historial">
       <div class="pagehead">
         <h2>Historial</h2>
-        <p>Los últimos 100 presupuestos y recibos que hiciste en este celular.</p>
+        <p>Los últimos 100 presupuestos y recibos que hiciste en este celular. Marcá en qué estado está cada uno.</p>
+      </div>
+      <div class="hist-tools">
+        <input type="search" id="histQ" placeholder="Buscar por perro o dueño" aria-label="Buscar en el historial" autocomplete="off">
+        <div class="seg" id="histF" role="group" aria-label="Filtrar por estado">
+          <button type="button" class="on" data-f="todos">Todos</button>
+          <button type="button" data-f="enviado">Enviados</button>
+          <button type="button" data-f="senado">Señados</button>
+          <button type="button" data-f="pagado">Pagados</button>
+        </div>
+        <p class="hint" id="histSum" aria-live="polite"></p>
       </div>
       <div id="historyList" class="panel list"></div>
     </section>

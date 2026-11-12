@@ -29,6 +29,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preload" href="fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/onest.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/plexmono-600.woff2" as="font" type="font/woff2" crossorigin>
   <script>
     if (/^#(c=|cliente)/.test(location.hash)) location.replace('app/' + location.hash);
     try { var t = localStorage.getItem('ic.theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
@@ -39,6 +40,7 @@
     }
   </script>
   <link rel="stylesheet" href="assets/landing.css">
+  <script src="config.js"></script>
 </head>
 <body>
   <a href="#contenido" class="fixed left-4 top-4 z-[100] -translate-y-24 rounded-full bg-brand px-5 py-3 font-bold text-on-brand shadow-lg transition-transform focus:translate-y-[env(safe-area-inset-top)]">Saltar al contenido</a>
@@ -128,7 +130,23 @@
     <section id="inicio" class="relative overflow-hidden pt-[calc(env(safe-area-inset-top)+110px)] pb-20 lg:pt-[150px] lg:pb-28">
       <div class="grain pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(70%_60%_at_70%_40%,#000,transparent)]" aria-hidden="true"></div>
       <div class="wrap relative grid items-center gap-14 lg:grid-cols-[1.15fr_.85fr] lg:gap-10">
-        <div class="hero-copy">
+        <div class="hero-copy min-w-0">
+          <a href="#precios" id="aviso" class="h-in group mb-6 hidden max-w-full items-center gap-3 rounded-2xl border-[1.5px] border-line bg-surface py-1.5 pl-1.5 pr-4 text-left leading-snug sm:rounded-full text-[.92rem] font-semibold text-ink shadow-[0_6px_18px_-10px_rgba(10,28,68,.35)] transition-colors hover:border-brand" hidden>
+            <span class="flex-none self-start rounded-full bg-[#c41d24] px-2.5 py-1 font-mono sm:self-auto text-[.68rem] font-semibold tracking-[.1em] text-white">AVISO</span>
+            <span class="min-w-0" id="avisoTxt"></span>
+            <svg class="h-4 w-4 flex-none text-brand transition-transform group-hover:translate-x-0.5"><use href="#i-arrow"/></svg>
+          </a>
+          <script>
+            /* el aviso se completa antes del primer dibujado, así no empuja el titular */
+            (function () {
+              var C = window.INQUIETOS || {}, av = C.aviso && (typeof C.aviso === 'string' ? { texto: C.aviso } : C.aviso);
+              if (!av || !av.texto) return;
+              var a = document.getElementById('aviso');
+              document.getElementById('avisoTxt').textContent = av.texto;
+              if (av.link) a.href = av.link;
+              a.hidden = false; a.classList.replace('hidden', 'inline-flex');
+            })();
+          </script>
           <p class="eyebrow h-in" data-zona>Paseos · Guardería · Estadías</p>
           <h1 class="display mt-6 text-[clamp(2.9rem,6.4vw,5.9rem)] text-brand" aria-label="Para perros que no se quedan quietos.">
             <span aria-hidden="true"><span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">Para</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">perros</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">que</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">no</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">se</span></span> <span class="text-cyan"><span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">quedan</span></span> <span class="-mt-[.3em] inline-block overflow-hidden pt-[.3em] pb-[.06em] align-bottom"><span class="h-word inline-block">qu<span class="relative inline-block">i<span id="iDot" class="absolute left-1/2 top-[.02em] h-[.19em] w-[.19em] -translate-x-1/2 -translate-y-full rounded-full bg-ball"></span></span>etos.</span></span></span></span>
@@ -280,6 +298,13 @@
             </div>
           </div>
 
+          <div class="mt-8" id="cExtrasWrap">
+            <p class="font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3">EXTRAS <span class="font-sans font-normal normal-case tracking-normal">· opcionales</span></p>
+            <div class="mt-3 flex flex-wrap gap-2" id="cExtras" role="group" aria-label="Extras"></div>
+          </div>
+
+          <p class="mt-6 hidden items-center justify-between gap-3 rounded-2xl border-[1.5px] border-dashed border-cyan px-4 py-3 text-[.95rem]" id="cNudge"></p>
+
           <div class="my-8 border-t-2 border-dashed border-line"></div>
 
           <p class="text-ink-2" id="cDetail"></p>
@@ -400,7 +425,6 @@
     <a href="#" class="btn btn-wa !min-h-[48px] !w-[48px] !px-0" data-wa aria-label="WhatsApp"><svg><use href="#i-wa"/></svg></a>
   </div>
 
-  <script src="config.js"></script>
   <script src="assets/vendor/gsap.min.js" defer></script>
   <script src="assets/vendor/ScrollTrigger.min.js" defer></script>
   <script src="assets/vendor/lenis.min.js" defer></script>

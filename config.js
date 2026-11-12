@@ -28,6 +28,9 @@ window.INQUIETOS = {
   horaIn: '09:00',
   horaOut: '18:00',
 
+  // Aviso destacado arriba de todo en la página. Para ocultarlo: aviso: '',
+  aviso: { texto: 'Verano y fiestas se llenan rápido: reservá con tiempo', link: '#precios' },
+
   // ---------------- PRECIOS ----------------
   // unidad: 'dia' cuenta días (ingreso y retiro incluidos) · 'noche' cuenta noches
   mostrarPrecios: true,     // false para ocultar precios en la página web

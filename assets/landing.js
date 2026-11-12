@@ -90,7 +90,8 @@
   }).join('');
 
   /* ---------------- calculadora ---------------- */
-  const calc = { s: Math.max(0, featured), qty: 5, dogs: 1 };
+  const extrasCfg = (C.extras || []).filter((x) => x && x.nombre);
+  const calc = { s: Math.max(0, featured), qty: 5, dogs: 1, ex: new Set() };
   const perks = [];
   pagos.forEach((p) => { if (+p.descuento > 0) perks.push([`${pct(p.descuento)} menos pagando ${p.nombre.toLowerCase()}`, 'heart']); });
   (C.descEstadia || []).filter((t) => +t.desde && +t.pct).forEach((t) => perks.push([`${pct(t.pct)} menos desde ${t.desde} días`, 'cal']));
@@ -107,11 +108,14 @@
     for (let i = 0; i < calc.dogs; i++) serv += unit * calc.qty * (i > 0 ? 1 - dp / 100 : 1);
     const tier = (C.descEstadia || []).filter((t) => +t.desde && calc.qty >= +t.desde).sort((a, b) => b.desde - a.desde)[0];
     const larga = tier ? serv * (+tier.pct || 0) / 100 : 0;
-    const base = serv - larga;
+    const extras = [...calc.ex].reduce((a, i) => { const x = extrasCfg[i]; return a + (+x.precio || 0) * (x.unidad === 'dia' ? calc.qty : 1); }, 0);
+    const base = serv - larga + extras;
+    // próximo escalón de descuento por estadía larga (para sugerirlo)
+    const next = (C.descEstadia || []).filter((t) => +t.desde > calc.qty && +t.pct > (tier ? +tier.pct : 0)).sort((a, b) => a.desde - b.desde)[0];
     const totals = pagos.map((p) => ({ nombre: p.nombre, d: +p.descuento || 0, total: Math.round(base * (1 - (+p.descuento || 0) / 100)) }));
     const best = Math.min(...totals.map((t) => t.total));
     const senia = Math.round(Math.max(...totals.map((t) => t.total)) * (+C.seniaPct || 0) / 100);
-    return { s, unit, larga, tier, totals, best, senia };
+    return { s, unit, larga, tier, totals, best, senia, extras, next };
   }
 
   let shown = {};
@@ -124,6 +128,8 @@
 
   function renderCalc() {
     $('#cServ').innerHTML = servicios.map((s, i) => `<button type="button" aria-pressed="${i === calc.s}" data-serv="${i}">${esc(s.nombre)}</button>`).join('');
+    $('#cExtrasWrap').hidden = !extrasCfg.length;
+    $('#cExtras').innerHTML = extrasCfg.map((x, i) => `<button type="button" class="xchip" data-ex="${i}" aria-pressed="false"><span class="box">${icon('check', '')}</span>${esc(x.nombre.replace(/\s*\(.*\)$/, ''))}<small>${money(x.precio)}${x.unidad === 'dia' ? '/día' : ''}</small></button>`).join('');
     updateCalc();
   }
   function updateCalc() {
@@ -139,8 +145,15 @@
     $('[data-step="dogs"][data-d="-1"]').disabled = calc.dogs <= 1;
     $('[data-step="dogs"][data-d="1"]').disabled = calc.dogs >= 6;
     let det = `${calc.dogs} ${calc.dogs === 1 ? 'perro' : 'perros'} × ${calc.qty} ${calc.qty === 1 ? u1 : u2} × ${money(r.unit)}`;
-    if (r.larga) det += ` · <span class="font-semibold text-[#1e8a55] dark:text-[#4fca8b]">${pct(r.tier.pct)} menos por estadía larga</span>`;
+    if (r.larga) det += ` · <span class="font-semibold text-[#17784a] dark:text-[#4fca8b]">${pct(r.tier.pct)} menos por estadía larga</span>`;
+    if (r.extras) det += ` · extras ${money(r.extras)}`;
     $('#cDetail').innerHTML = det;
+    $$('#cExtras .xchip').forEach((b) => b.setAttribute('aria-pressed', calc.ex.has(+b.dataset.ex)));
+    const nudge = $('#cNudge'), falta = r.next ? r.next.desde - calc.qty : 0;
+    if (r.next && falta <= 7) {
+      nudge.innerHTML = `<span>Con <b>${falta} ${falta === 1 ? u1 : u2} más</b> tenés <b class="text-brand">${pct(r.next.pct)} de descuento</b> en ${esc(r.s.nombre.toLowerCase())}.</span><button type="button" class="btn btn-ghost !min-h-[40px] !px-4 text-[.9rem]" data-jump="${r.next.desde}">Sumar</button>`;
+      nudge.classList.replace('hidden', 'flex');
+    } else nudge.classList.replace('flex', 'hidden');
 
     const box = $('#cTotals');
     if (box.children.length !== r.totals.length) {
@@ -157,10 +170,11 @@
     });
     $('#cSenia').hidden = !r.senia;
     tween($('#cSeniaV'), r.senia);
-    $('#cGo').href = `app/#cliente&s=${calc.s}&p=${calc.dogs}`;
+    $('#cGo').href = `app/#cliente&s=${calc.s}&p=${calc.dogs}${calc.ex.size ? '&e=' + [...calc.ex].join('.') : ''}`;
     if (wa) {
       const lines = [`¡Hola! Quería consultar por ${r.s.nombre.toLowerCase()}:`,
         `• ${calc.dogs} ${calc.dogs === 1 ? 'perro' : 'perros'}, ${calc.qty} ${calc.qty === 1 ? u1 : u2}`,
+        ...[...calc.ex].map((i) => `• + ${extrasCfg[i].nombre}`),
         ...r.totals.map((t) => `• ${t.nombre ? 'Total ' + t.nombre.toLowerCase() : 'Total'}: ${money(t.total)}`),
         '¿Tenés lugar? Te paso las fechas.'];
       const w = $('#cWa'); w.hidden = false; w.target = '_blank'; w.rel = 'noopener';
@@ -172,6 +186,8 @@
     if (b.dataset.serv != null) calc.s = +b.dataset.serv;
     else if (b.dataset.step === 'qty') calc.qty = Math.max(1, Math.min(90, calc.qty + +b.dataset.d));
     else if (b.dataset.step === 'dogs') calc.dogs = Math.max(1, Math.min(6, calc.dogs + +b.dataset.d));
+    else if (b.dataset.ex != null) { const i = +b.dataset.ex; if (calc.ex.has(i)) calc.ex.delete(i); else calc.ex.add(i); }
+    else if (b.dataset.jump) calc.qty = +b.dataset.jump;
     else return;
     updateCalc();
   });

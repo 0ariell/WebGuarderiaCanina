@@ -1,6 +1,6 @@
 /* Concepto: identidad de Inquietos Caninos. Azul francia y celeste del logo, la pelotita roja
    como único detalle cálido; papel blanco con un velo celeste; ficha de ingreso con calendario. */
-@font-face { font-family: "Archivo"; src: url(../fonts/archivo.woff2) format("woff2"); font-weight: 400 900; font-stretch: 62% 125%; font-display: swap; }
+@font-face { font-family: "Archivo"; src: url(../fonts/archivo.woff2) format("woff2"); font-weight: 600 900; font-stretch: 100% 125%; font-display: swap; }
 @font-face { font-family: "Onest"; src: url(../fonts/onest.woff2) format("woff2"); font-weight: 400 700; font-display: swap; }
 @font-face { font-family: "Plex Mono"; src: url(../fonts/plexmono-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: "Plex Mono"; src: url(../fonts/plexmono-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
@@ -328,6 +328,32 @@ body.client .tabbar { display: none; }
 .hist .d { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hist .s { font-size: .84rem; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .hist .acts { display: flex; }
+
+/* primeros pasos */
+.setup { display: grid; gap: 12px; padding: 14px 16px; border-radius: var(--r); background: var(--sky); border: 1.5px solid var(--rule); }
+.setup-t { margin: 0; font: 750 1rem/1.25 var(--f-display); font-stretch: 105%; color: var(--brand); }
+.setup-d { margin: 4px 0 0; font-size: .9rem; color: var(--ink-2); }
+.setup .row-btns > * { flex: 0 1 auto; }
+
+/* errores en el campo */
+.err { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font-size: .85rem; font-weight: 600; color: var(--danger); }
+.err::before { content: "!"; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--danger); color: #fff; font-size: .72rem; flex: none; }
+[aria-invalid="true"], .cal[aria-invalid="true"] { border-color: var(--danger) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent) !important; }
+
+/* historial: buscador, filtro y estado */
+.hist-tools { display: grid; gap: 10px; }
+.hist-tools input[type=search] { background: var(--surface); }
+.hist-tools .hint { margin: 0; }
+.hist .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.estado {
+  width: auto; min-height: 32px; padding: 4px 28px 4px 10px; border-radius: 999px; font: 650 .78rem/1 var(--f-body);
+  background-position: calc(100% - 14px) 13px, calc(100% - 9px) 13px; border-width: 1.5px;
+}
+.estado.e-enviado { background-color: var(--field); }
+.estado.e-senado { background-color: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 40%, var(--rule)); }
+.estado.e-pagado { background-color: color-mix(in srgb, var(--go) 16%, var(--surface)); border-color: color-mix(in srgb, var(--go) 45%, var(--rule)); color: var(--go); }
+.estado.e-cancelado { color: var(--ink-3); text-decoration: line-through; }
+.hist.cancelado .d, .hist.cancelado .s { opacity: .55; }
 
 /* editores de listas */
 .ed-row { display: grid; gap: 8px; align-items: end; }

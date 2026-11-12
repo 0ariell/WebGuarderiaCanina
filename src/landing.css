@@ -10,7 +10,7 @@
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
-@font-face { font-family: "Archivo"; src: url(../fonts/archivo.woff2) format("woff2"); font-weight: 400 900; font-stretch: 62% 125%; font-display: swap; }
+@font-face { font-family: "Archivo"; src: url(../fonts/archivo.woff2) format("woff2"); font-weight: 600 900; font-stretch: 100% 125%; font-display: swap; }
 @font-face { font-family: "Onest"; src: url(../fonts/onest.woff2) format("woff2"); font-weight: 400 700; font-display: swap; }
 @font-face { font-family: "Plex Mono"; src: url(../fonts/plexmono-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: "Plex Mono"; src: url(../fonts/plexmono-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
@@ -142,6 +142,15 @@
   :root[data-theme="dark"] .total.best { background: #1a3f8f; border-color: #1a3f8f; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .total.best { background: #1a3f8f; border-color: #1a3f8f; } }
   .total .amt { font-family: var(--font-display); font-stretch: 108%; font-weight: 900; font-size: clamp(1.7rem, 3.4vw, 2.2rem); line-height: 1; font-variant-numeric: tabular-nums; }
+
+  /* extras de la calculadora */
+  .xchip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px 0 10px; border-radius: 999px; border: 1.5px solid var(--c-line); background: var(--c-surface); font-weight: 600; font-size: .92rem; color: var(--c-ink-2); transition: border-color .2s, background-color .2s, color .2s; }
+  .xchip .box { width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--c-ink-3); display: grid; place-items: center; transition: background-color .2s, border-color .2s; }
+  .xchip .box svg { width: 14px; height: 14px; opacity: 0; color: var(--c-on-brand); }
+  .xchip small { font-family: var(--font-mono); font-size: .74rem; color: var(--c-ink-3); font-weight: 500; }
+  .xchip[aria-pressed="true"] { border-color: var(--c-brand); color: var(--c-ink); background: var(--c-sky); }
+  .xchip[aria-pressed="true"] .box { background: var(--c-brand); border-color: var(--c-brand); }
+  .xchip[aria-pressed="true"] .box svg { opacity: 1; }
 
   /* preguntas */
   .faq { border-bottom: 1.5px solid var(--c-line); }

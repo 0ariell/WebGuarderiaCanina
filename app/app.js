@@ -355,6 +355,7 @@ function updateSummary() {
 
 form.addEventListener('input', (e) => {
   const t = e.target;
+  if (t.getAttribute('aria-invalid')) { t.removeAttribute('aria-invalid'); const er = $('#err-' + t.id); if (er) er.remove(); }
   if (t.dataset.dog != null) {
     st.dogs[+t.dataset.dog][t.dataset.k] = t.dataset.k === 'tamano' ? +t.value : t.value;
   } else if (t.dataset.extra != null) {
@@ -372,7 +373,9 @@ form.addEventListener('input', (e) => {
 form.addEventListener('click', async (e) => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.day) {
-    pickDay(b.dataset.day); updateSummary();
+    pickDay(b.dataset.day);
+    if ($('#cal').getAttribute('aria-invalid')) { $('#cal').removeAttribute('aria-invalid'); const er = $('#err-cal'); if (er) er.remove(); }
+    updateSummary();
   } else if (b.id === 'calPrev' || b.id === 'calNext') {
     calView = new Date(calView.getFullYear(), calView.getMonth() + (b.id === 'calNext' ? 1 : -1), 1); renderCal();
   } else if (b.id === 'calWeekdays') {
@@ -397,6 +400,7 @@ form.addEventListener('click', async (e) => {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
+  clearErrors();
   if (!st.cliente.trim()) return focusErr('#f-cliente', 'Falta el nombre del dueño o dueña.');
   if (!st.dogs.some((d) => d.nombre.trim())) return focusErr('#dog0-n', 'Falta el nombre del perro.');
   if (!st.fechaIn) return focusErr('#cal', 'Elegí en el calendario el día que lo traés.');
@@ -404,8 +408,18 @@ form.addEventListener('submit', async (e) => {
   await generate();
 });
 function focusErr(sel, msg) {
-  toast(msg); const el = $(sel);
-  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => el.focus({ preventScroll: true }), 350); }
+  const el = $(sel); if (!el) { toast(msg); return; }
+  // el aviso queda pegado al campo, no en un cartel que se va
+  const id = 'err-' + (el.id || 'campo');
+  const p = document.createElement('p'); p.className = 'err'; p.id = id; p.textContent = msg; p.setAttribute('role', 'alert');
+  (el.id === 'cal' ? $('#calHint') : el).insertAdjacentElement('afterend', p);
+  el.setAttribute('aria-invalid', 'true'); el.setAttribute('aria-describedby', id);
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  setTimeout(() => (el.id === 'cal' ? ($('#calGrid .today') || $('#calGrid .day')) : el).focus({ preventScroll: true }), 350);
+}
+function clearErrors() {
+  $$('#form .err').forEach((x) => x.remove());
+  $$('#form [aria-invalid]').forEach((x) => { x.removeAttribute('aria-invalid'); x.removeAttribute('aria-describedby'); });
 }
 
 /* ======================= RECIBO (CANVAS → PNG) ======================= */
@@ -719,7 +733,8 @@ async function generate(fromHistory) {
       cfg.nextNumero = num(cfg.nextNumero) + 1; saveCfg(); fillCfgForm();
       currentId = 'r' + Date.now();
     }
-    const entry = { id: currentId, numero, fecha, ts: Date.now(), c: clone(cfg), s: clone(st) };
+    const estado = (prev && prev.estado && prev.estado !== 'enviado') ? prev.estado : (num(st.pagado) > 0 ? 'senado' : 'enviado');
+    const entry = { id: currentId, numero, fecha, ts: Date.now(), estado, c: clone(cfg), s: clone(st) };
     lsSet(LS_HIST, [entry, ...hist.filter((h) => h.id !== currentId)].slice(0, 100));
     renderHistory(); lsSet(LS_DRAFT, { st, currentId });
   }
@@ -769,35 +784,67 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#mod
 function closeModal() { $('#modal').hidden = true; document.body.style.overflow = ''; }
 
 /* ======================= HISTORIAL ======================= */
+const ESTADOS = [['enviado', 'Enviado'], ['senado', 'Señado'], ['pagado', 'Pagado'], ['cancelado', 'Cancelado']];
+let histFiltro = 'todos';
+const estadoDe = (h) => h.estado || (num(h.s.pagado) > 0 ? 'senado' : 'enviado');
+const norm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 function renderHistory() {
   const list = lsGet(LS_HIST, []);
   const box = $('#historyList');
-  if (!list.length) { box.innerHTML = '<p class="empty" style="padding:18px 16px">Todavía no hiciste recibos. Cuando generes uno, aparece acá.</p>'; return; }
-  box.innerHTML = list.map((h) => {
-    const r = calc(h.c, h.s);
-    return `<div class="hist">
+  $('.hist-tools').hidden = list.length < 2;
+  if (!list.length) { box.innerHTML = '<p class="empty" style="padding:18px 16px">Todavía no hiciste presupuestos. Cuando generes uno, aparece acá.</p>'; $('#histSum').textContent = ''; return; }
+  const q = norm($('#histQ').value.trim());
+  const rows = list.filter((h) => {
+    if (histFiltro !== 'todos' && estadoDe(h) !== histFiltro) return false;
+    if (!q) return true;
+    return norm([h.numero, h.s.cliente, h.s.telCliente, ...(h.s.dogs || []).map((d) => d.nombre)].join(' ')).includes(q);
+  });
+  const pend = list.filter((h) => estadoDe(h) === 'enviado').length;
+  $('#histSum').textContent = `${list.length} en total${pend ? ` · ${pend} sin confirmar` : ''}${rows.length !== list.length ? ` · mostrando ${rows.length}` : ''}`;
+  if (!rows.length) { box.innerHTML = '<p class="empty" style="padding:18px 16px">No hay presupuestos que coincidan con la búsqueda.</p>'; return; }
+  box.innerHTML = rows.map((h) => {
+    const r = calc(h.c, h.s), e = estadoDe(h);
+    return `<div class="hist ${e === 'cancelado' ? 'cancelado' : ''}">
       <div class="info">
         <div class="t"><span class="n">${esc(h.numero)}</span><span class="d">${esc(r.dogs.map((d) => d.nombre).join(', '))}</span></div>
-        <div class="s">${esc(h.s.cliente)} · ${esc(h.fecha)} · ${money(Math.min(...r.pagos.map((p) => p.total)))}</div>
+        <div class="s">${esc(h.s.cliente)} · ${esc(h.s.fechaIn ? fmtDate(h.s.fechaIn).slice(0, 5) : h.fecha)} · ${money(Math.min(...r.pagos.map((p) => p.total)))}</div>
+        <div class="meta"><label class="sr" for="est-${h.id}">Estado de ${esc(h.numero)}</label>
+          <select id="est-${h.id}" class="estado e-${e}" data-hest="${h.id}">${ESTADOS.map(([v, t]) => `<option value="${v}" ${v === e ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
       </div>
       <div class="acts">
         <button class="iconbtn" data-hview="${h.id}" aria-label="Ver ${esc(h.numero)}">${icon('eye')}</button>
         <button class="iconbtn" data-hedit="${h.id}" aria-label="Editar ${esc(h.numero)}">${icon('edit')}</button>
+        <button class="iconbtn" data-hdup="${h.id}" aria-label="Duplicar ${esc(h.numero)} con fechas nuevas">${icon('copy')}</button>
         <button class="iconbtn del" data-hdel="${h.id}" aria-label="Borrar ${esc(h.numero)}">${icon('trash')}</button>
       </div>
     </div>`;
   }).join('');
 }
+$('#histQ').addEventListener('input', renderHistory);
+$('#histF').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  histFiltro = b.dataset.f; $$('#histF button').forEach((x) => x.classList.toggle('on', x === b)); renderHistory();
+});
+$('#historyList').addEventListener('change', (e) => {
+  const sel = e.target.closest('[data-hest]'); if (!sel) return;
+  const list = lsGet(LS_HIST, []), h = list.find((x) => x.id === sel.dataset.hest); if (!h) return;
+  h.estado = sel.value; lsSet(LS_HIST, list); renderHistory();
+  toast(`${h.numero}: ${ESTADOS.find((x) => x[0] === sel.value)[1].toLowerCase()}.`);
+});
 $('#historyList').addEventListener('click', async (e) => {
   const b = e.target.closest('button'); if (!b) return;
   const list = lsGet(LS_HIST, []);
-  const id = b.dataset.hview || b.dataset.hedit || b.dataset.hdel;
+  const id = b.dataset.hview || b.dataset.hedit || b.dataset.hdel || b.dataset.hdup;
   const h = list.find((x) => x.id === id); if (!h) return;
   if (b.dataset.hview) await generate(h);
   else if (b.dataset.hedit) {
     st = Object.assign(blankState(), clone(h.s)); currentId = h.id; renderForm(); showTab('recibo');
     toast(`Editando ${h.numero}. Al generar se actualiza.`);
-  } else if (await ask(`¿Borrar el recibo ${h.numero}?`, 'Borrar')) {
+  } else if (b.dataset.hdup) {
+    st = Object.assign(blankState(), clone(h.s), { fechaIn: '', fechaOut: '', excluidos: [], pagado: '' });
+    currentId = null; calView = null; renderForm(); showTab('recibo');
+    toast('Copiado con los mismos datos. Elegí las fechas nuevas.');
+  } else if (await ask(`¿Borrar ${h.numero}?`, 'Borrar')) {
     lsSet(LS_HIST, list.filter((x) => x.id !== id)); if (currentId === id) currentId = null; renderHistory();
   }
 });
@@ -825,7 +872,20 @@ $('#btnShareLink').addEventListener('click', async () => {
 });
 
 /* ======================= AJUSTES ======================= */
-function saveCfg() { lsSet(LS_CFG, cfg); lsSet(LS_BASE, DEFAULT_CFG); applyBrand(); }
+function saveCfg() { lsSet(LS_CFG, cfg); lsSet(LS_BASE, DEFAULT_CFG); applyBrand(); checkSetup(); }
+function faltantes() {
+  const f = [];
+  if (!String(cfg.telefono || '').trim()) f.push(['tu WhatsApp', '#c-tel']);
+  if (!String(cfg.alias || '').trim() && !String(cfg.cbu || '').trim()) f.push(['el alias o CBU para la seña', '#c-alias']);
+  if (!String(cfg.responsable || '').trim()) f.push(['tu nombre', '#c-resp']);
+  return f;
+}
+function checkSetup() {
+  const box = $('#setup'); if (!box) return;
+  const f = faltantes(), later = lsGet('ic.setupLater', 0);
+  box.hidden = clientMode || !f.length || Date.now() - later < 3 * 864e5;
+  if (f.length) $('#setupTxt').textContent = `Así tus presupuestos salen completos: ${f.map((x) => x[0]).join(', ').replace(/, ([^,]*)$/, ' y $1')}.`;
+}
 function applyBrand() {
   const name = cfg.negocio || 'Inquietos Caninos';
   $('#brandName').textContent = name;
@@ -894,6 +954,12 @@ $('#fileImport').addEventListener('change', async (e) => {
 });
 function initCfgUI() { fillCfgForm(); Object.keys(EDITORS).forEach(renderEditor); }
 
+$('#setupGo').addEventListener('click', () => {
+  const f = faltantes(); showTab('ajustes');
+  if (f.length) setTimeout(() => { const el = $(f[0][1]); el.scrollIntoView({ block: 'center' }); el.focus({ preventScroll: true }); }, 60);
+});
+$('#setupLater').addEventListener('click', () => { lsSet('ic.setupLater', Date.now()); checkSetup(); });
+
 /* ======================= TEMA CLARO / OSCURO ======================= */
 const mqDark = window.matchMedia('(prefers-color-scheme: dark)');
 const isDark = () => (document.documentElement.dataset.theme || (mqDark.matches ? 'dark' : 'light')) === 'dark';
@@ -941,6 +1007,8 @@ async function init() {
     const sv = location.hash.match(/[#&]s=(\d+)/), pe = location.hash.match(/[#&]p=(\d+)/);
     if (sv && cfg.servicios[+sv[1]]) st.servicio = +sv[1];
     if (pe) for (let i = 1; i < Math.min(+pe[1], 6); i++) st.dogs.push({ nombre: '', raza: '', edad: '', tamano: 0 });
+    const ex = location.hash.match(/[#&]e=([\d.]+)/);
+    if (ex) ex[1].split('.').forEach((i) => { if (cfg.extras[+i]) st.extras[+i] = ''; });
     document.body.classList.add('client');
     $('#clientIntro').hidden = false;
     $('#btnGenerar').textContent = 'Ver presupuesto';
@@ -966,6 +1034,7 @@ async function init() {
   const hoy = new Date();
   $('#todayLbl').textContent = `${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][hoy.getDay()]} ${hoy.getDate()} de ${MESES[hoy.getMonth()]}`;
   $('#adminHead').hidden = clientMode;
+  checkSetup();
   applyBrand();
   renderForm();
 }
