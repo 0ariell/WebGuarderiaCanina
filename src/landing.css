@@ -152,6 +152,29 @@
   .xchip[aria-pressed="true"] .box { background: var(--c-brand); border-color: var(--c-brand); }
   .xchip[aria-pressed="true"] .box svg { opacity: 1; }
 
+  .seg.seg-wrap { display: flex; flex-wrap: wrap; }
+  .seg.seg-wrap button { flex: 1 1 auto; }
+  .xchip.pv { justify-content: flex-start; min-height: 56px; padding: 10px 16px 10px 12px; border-radius: 18px; align-items: center; gap: 12px; }
+  .xchip.pv small { margin-top: 2px; font-family: var(--font-sans); font-size: .84rem; font-weight: 500; color: var(--c-ink-2); }
+
+  /* disponibilidad */
+  .dcal { border: 1.5px solid var(--c-line); border-radius: 26px; background: var(--c-bg); padding: 22px 18px 18px; }
+  .dcal-t { margin: 0 0 12px 6px; font-family: var(--font-display); font-stretch: 108%; font-weight: 800; font-size: 1.3rem; text-transform: capitalize; }
+  .dcal-dow, .dcal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .dcal-dow span { text-align: center; font-family: var(--font-mono); font-size: .72rem; font-weight: 600; color: var(--c-ink-3); padding-bottom: 4px; }
+  .dday { position: relative; display: grid; place-items: center; aspect-ratio: 1; max-height: 54px; border-radius: 14px; font-weight: 650; font-variant-numeric: tabular-nums; font-size: .98rem; }
+  .dday small { position: absolute; top: 3px; right: 6px; font-family: var(--font-mono); font-size: .62rem; font-weight: 600; }
+  .dday.free { background: color-mix(in srgb, var(--c-cyan) 16%, var(--c-surface)); color: var(--c-ink); }
+  .dday.few { background: color-mix(in srgb, #e8a317 26%, var(--c-surface)); color: var(--c-ink); box-shadow: inset 0 0 0 1.5px #d99a14; }
+  .dday.full { background: var(--c-surface); color: var(--c-ink-3); text-decoration: line-through; box-shadow: inset 0 0 0 1.5px var(--c-line); }
+  .dday.past { color: var(--c-ink-3); background: transparent; }
+  .dday.today { box-shadow: inset 0 0 0 2.5px var(--c-brand); }
+  .dleg { width: 14px; height: 14px; border-radius: 5px; display: inline-block; }
+  .dleg-free { background: color-mix(in srgb, var(--c-cyan) 22%, var(--c-surface)); }
+  .dleg-few { background: color-mix(in srgb, #e8a317 30%, var(--c-surface)); box-shadow: inset 0 0 0 1.5px #d99a14; }
+  .dleg-full { background: var(--c-surface); box-shadow: inset 0 0 0 1.5px var(--c-line); }
+  #dPrev:disabled { opacity: .35; }
+
   /* preguntas */
   .faq { border-bottom: 1.5px solid var(--c-line); }
   .faq summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 0; cursor: pointer; font-weight: 700; font-size: 1.12rem; }

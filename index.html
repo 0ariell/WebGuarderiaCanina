@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Inquietos Caninos · Paseos, guardería y estadías para perros</title>
-  <meta name="description" content="Paseos, guardería de día y estadías para perros. Grupos chicos, rutina de casa y fotos para que sepas cómo la pasa. Calculá tu presupuesto al instante.">
+  <meta name="description" content="Paseos, guardería de día, estadías y clases de educación canina. Cupos reducidos, rutina de casa y fotos. Mirá la disponibilidad y calculá tu presupuesto al instante.">
   <link rel="canonical" href="https://0ariell.github.io/WebGuarderiaCanina/">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <meta name="theme-color" content="#f6fafd" media="(prefers-color-scheme: light)">
@@ -49,6 +49,7 @@
       <symbol id="i-casa" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14.5 16 5l11 9.5"/><path d="M8 12.5V27h16V12.5"/><path d="M19.5 17.5a3.5 3.5 0 1 1-3.9-3.5 2.8 2.8 0 0 0 3.9 3.5z"/></symbol>
       <symbol id="i-sol" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="16" cy="16" r="5.5"/><path d="M16 3.5v3M16 25.5v3M3.5 16h3M25.5 16h3M7.2 7.2l2.1 2.1M22.7 22.7l2.1 2.1M7.2 24.8l2.1-2.1M22.7 9.3l2.1-2.1"/></symbol>
       <symbol id="i-correa" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z"/><path d="M11.8 13.5C15 19 20 21 24.5 22"/><rect x="22.5" y="19.5" width="6" height="5" rx="1.6"/><path d="M25.5 24.5v3"/></symbol>
+      <symbol id="i-educacion" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.5 16 6l13 6.5L16 19z"/><path d="M8.5 15.3v6.2c2 2 4.6 3 7.5 3s5.5-1 7.5-3v-6.2"/><path d="M29 12.5v7"/></symbol>
       <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
       <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
       <symbol id="i-wa" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.2a9.7 9.7 0 0 0-8.4 14.6L2.3 21.7l5-1.3A9.7 9.7 0 1 0 12 2.2zm0 17.7a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 19.9zm4.4-6c-.2-.1-1.4-.7-1.7-.8-.2-.1-.4-.1-.5.1l-.8 1c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.5-.4h-.5a.9.9 0 0 0-.6.3 2.7 2.7 0 0 0-.9 2c0 1.2.9 2.3 1 2.5.1.2 1.7 2.6 4.1 3.7 1.5.7 2.1.7 2.9.6.5-.1 1.4-.6 1.6-1.1.2-.6.2-1 .1-1.1l-.4-.2z"/></symbol>
@@ -81,9 +82,9 @@
       </a>
       <nav class="hidden items-center gap-8 lg:flex" aria-label="Secciones">
         <a class="nav-link" href="#servicios">Servicios</a>
-        <a class="nav-link" href="#como">Cómo reservar</a>
+        <a class="nav-link" href="#educacion">Educación</a>
         <a class="nav-link" href="#precios">Precios</a>
-        <a class="nav-link" href="#cuidado">Cómo lo cuidamos</a>
+        <a class="nav-link" href="#disponibilidad">Disponibilidad</a>
         <a class="nav-link" href="#preguntas">Preguntas</a>
       </nav>
       <button type="button" class="themebtn" id="themeBtn" aria-label="Cambiar a modo oscuro">
@@ -110,9 +111,9 @@
       </div>
       <nav class="mt-12 flex flex-col gap-2" aria-label="Secciones">
         <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#servicios">Servicios</a>
-        <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#como">Cómo reservar</a>
+        <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#educacion">Educación</a>
         <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#precios">Precios</a>
-        <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#cuidado">Cuidado</a>
+        <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#disponibilidad">Disponibilidad</a>
         <a class="display menu-link py-2 text-[2.6rem] text-ink" href="#preguntas">Preguntas</a>
       </nav>
       <div class="mt-auto grid gap-3">
@@ -147,19 +148,20 @@
               a.hidden = false; a.classList.replace('hidden', 'inline-flex');
             })();
           </script>
-          <p class="eyebrow h-in" data-zona>Paseos · Guardería · Estadías</p>
+          <p class="eyebrow h-in" id="rubros">Paseos · Guardería · Estadías · Educación</p>
+          <script>(function () { var C = window.INQUIETOS || {}; if (C.rubros) document.getElementById('rubros').textContent = C.rubros; })();</script>
           <h1 class="display mt-6 text-[clamp(2.9rem,6.4vw,5.9rem)] text-brand" aria-label="Para perros que no se quedan quietos.">
             <span aria-hidden="true"><span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">Para</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">perros</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">que</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">no</span></span> <span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">se</span></span> <span class="text-cyan"><span class="inline-block overflow-hidden pb-[.06em] align-bottom"><span class="h-word inline-block">quedan</span></span> <span class="-mt-[.3em] inline-block overflow-hidden pt-[.3em] pb-[.06em] align-bottom"><span class="h-word inline-block">qu<span class="relative inline-block">i<span id="iDot" class="absolute left-1/2 top-[.02em] h-[.19em] w-[.19em] -translate-x-1/2 -translate-y-full rounded-full bg-ball"></span></span>etos.</span></span></span></span>
           </h1>
-          <p class="lead h-in mt-7">Paseos, guardería de día y estadías <span data-zona-txt>en Buenos Aires</span>. Grupos chicos, rutina de casa y fotos para que sepas cómo la está pasando.</p>
+          <p class="lead h-in mt-7">Paseos, guardería de día, estadías y clases de educación canina <span data-zona-txt>en Buenos Aires</span>. Cupos reducidos, rutina de casa y fotos para que sepas cómo la está pasando.</p>
           <div class="h-in mt-9 flex flex-wrap gap-3">
             <a href="#precios" class="btn btn-primary">Calcular mi presupuesto<svg><use href="#i-arrow"/></svg></a>
             <a href="#" class="btn btn-ghost" data-wa><svg class="text-wa"><use href="#i-wa"/></svg>Escribinos</a>
           </div>
           <ul class="h-in mt-10 flex flex-wrap gap-x-7 gap-y-3 text-[.95rem] font-semibold text-ink-2">
-            <li class="flex items-center gap-2"><svg class="h-5 w-5 text-cyan"><use href="#i-users"/></svg>Grupos chicos</li>
+            <li class="flex items-center gap-2"><svg class="h-5 w-5 text-cyan"><use href="#i-users"/></svg>Cupos reducidos</li>
+            <li class="flex items-center gap-2"><svg class="h-5 w-5 text-cyan"><use href="#i-educacion"/></svg>Educador canino</li>
             <li class="flex items-center gap-2"><svg class="h-5 w-5 text-cyan"><use href="#i-cam"/></svg>Fotos todos los días</li>
-            <li class="flex items-center gap-2"><svg class="h-5 w-5 text-cyan"><use href="#i-home"/></svg>Rutina como en casa</li>
           </ul>
         </div>
 
@@ -210,11 +212,35 @@
         <div class="reveal flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p class="eyebrow">Lo que hacemos</p>
-            <h2 class="h2 mt-4 max-w-[16ch]">Tres formas de cuidarlo</h2>
+            <h2 class="h2 mt-4 max-w-[16ch]">Cuidado y educación</h2>
           </div>
-          <p class="lead lg:max-w-[42ch]">Desde un paseo para que descargue energía hasta unas vacaciones completas mientras vos estás de viaje.</p>
+          <p class="lead lg:max-w-[46ch]">Desde un paseo para que descargue energía hasta unas vacaciones completas, y clases para que la convivencia sea más fácil.</p>
         </div>
         <div class="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3" id="svcGrid"></div>
+      </div>
+    </section>
+
+    <!-- ===================== EDUCACIÓN ===================== -->
+    <section id="educacion" class="pb-24 lg:pb-32" hidden>
+      <div class="wrap">
+        <div class="reveal relative grid items-center gap-10 overflow-hidden rounded-[36px] bg-sky p-7 sm:p-12 lg:grid-cols-[1.25fr_.75fr]">
+          <div class="relative min-w-0">
+            <p class="eyebrow !text-brand">Educación canina</p>
+            <h2 class="h2 mt-4" id="edTit"></h2>
+            <p class="lead mt-5" id="edTxt"></p>
+            <ul class="mt-7 flex flex-wrap gap-2" id="edPts"></ul>
+            <div class="mt-9 flex flex-wrap gap-3">
+              <button type="button" class="btn btn-primary" id="edCalc">Calcular clases<svg><use href="#i-arrow"/></svg></button>
+              <a href="#" class="btn btn-ghost" data-wa><svg class="text-wa"><use href="#i-wa"/></svg>Consultar</a>
+            </div>
+          </div>
+          <div class="relative mx-auto grid aspect-square w-full max-w-[300px] place-items-center" aria-hidden="true">
+            <div class="absolute inset-0 rounded-full border-2 border-dashed border-sky-2"></div>
+            <div class="grid h-[72%] w-[72%] place-items-center rounded-full bg-brand text-on-brand shadow-[0_30px_60px_-30px_rgba(10,28,68,.6)]"><svg class="h-[46%] w-[46%]"><use href="#i-educacion"/></svg></div>
+            <span class="absolute right-[2%] top-[8%] h-12 w-12 rounded-full bg-ball shadow-[inset_-4px_-6px_0_rgba(0,0,0,.18)]"></span>
+            <span class="absolute bottom-[6%] left-[-4%] rounded-2xl bg-surface px-4 py-3 font-display text-[1.1rem] font-extrabold text-brand shadow-[0_18px_36px_-18px_rgba(10,28,68,.45)] [font-stretch:106%]" id="edPack" hidden></span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -223,7 +249,7 @@
       <div class="wrap">
         <div class="reveal max-w-[720px]">
           <p class="eyebrow">Cómo reservar</p>
-          <h2 class="h2 mt-4">Tres minutos y listo</h2>
+          <h2 class="h2 mt-4">Así se reserva</h2>
           <p class="lead mt-5">Sin idas y vueltas por mensaje. Elegís las fechas, ves el precio y confirmás.</p>
         </div>
         <div class="relative mt-16">
@@ -234,20 +260,20 @@
             <li class="step reveal">
               <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-brand text-on-brand shadow-[0_0_0_2px_var(--c-brand)]"><svg class="h-7 w-7"><use href="#i-cal"/></svg></span>
               <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan-ink">PASO 1</p>
-              <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Elegís las fechas</h3>
-              <p class="mt-2 text-ink-2">En el calendario tocás el día que lo traés y el día que lo retirás.</p>
-            </li>
-            <li class="step reveal">
-              <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-brand text-on-brand shadow-[0_0_0_2px_var(--c-brand)]"><svg class="h-7 w-7"><use href="#i-ticket"/></svg></span>
-              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan-ink">PASO 2</p>
-              <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Ves el presupuesto</h3>
-              <p class="mt-2 text-ink-2">Al instante, con el total en efectivo y en transferencia. Lo podés guardar como imagen.</p>
+              <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Elegís fechas y ves el precio</h3>
+              <p class="mt-2 text-ink-2">Mirás los días disponibles, tocás ingreso y retiro, y te sale el presupuesto al instante.</p>
             </li>
             <li class="step reveal">
               <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-brand text-on-brand shadow-[0_0_0_2px_var(--c-brand)]"><svg class="h-7 w-7"><use href="#i-wa"/></svg></span>
-              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan-ink">PASO 3</p>
+              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan-ink">PASO 2</p>
               <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]">Reservás con seña</h3>
               <p class="mt-2 text-ink-2">Nos lo mandás por WhatsApp y confirmás con el <span data-senia>30%</span>. El resto, al ingreso.</p>
+            </li>
+            <li class="step reveal">
+              <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-brand text-on-brand shadow-[0_0_0_2px_var(--c-brand)]"><svg class="h-7 w-7"><use href="#i-heart"/></svg></span>
+              <p class="mt-6 font-mono text-[.78rem] font-semibold tracking-[.14em] text-cyan-ink">PASO 3</p>
+              <h3 class="mt-2 font-display text-[1.45rem] font-extrabold leading-tight [font-stretch:108%]" id="stAdTit">Visita de adaptación</h3>
+              <p class="mt-2 text-ink-2" id="stAdTxt">Obligatoria para todos, aunque ya haya ido a otra guardería. Cuesta medio día y vale si la hacés hasta 30 días antes.</p>
             </li>
             <li class="step reveal">
               <span class="relative z-10 grid h-[68px] w-[68px] place-items-center rounded-full border-[3px] border-surface bg-ball text-white shadow-[0_0_0_2px_var(--c-ball)]"><svg class="h-7 w-7"><use href="#i-paw"/></svg></span>
@@ -265,30 +291,30 @@
       <div class="wrap grid items-start gap-12 lg:grid-cols-[.9fr_1.1fr] lg:gap-16">
         <div class="reveal lg:sticky lg:top-32">
           <p class="eyebrow">Precios</p>
-          <h2 class="h2 mt-4">¿Cuánto sale? Calculalo acá</h2>
-          <p class="lead mt-5">Elegí el servicio, los días y cuántos perros son. El precio se actualiza solo.</p>
+          <h2 class="h2 mt-4" id="cTitulo">¿Cuánto sale? Calculalo acá</h2>
+          <p class="lead mt-5" id="cBajada">Elegí el servicio, la cantidad y cuántos perros son. El precio se actualiza solo.</p>
           <ul class="mt-8 grid gap-3" id="perks"></ul>
         </div>
 
         <div class="reveal rounded-[32px] border-[1.5px] border-line bg-surface p-5 shadow-[0_40px_80px_-50px_rgba(10,28,68,.45)] sm:p-8" id="calc">
+          <div class="seg mb-4" id="cCat" role="group" aria-label="Categoría" hidden></div>
           <p class="mb-3 font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3">SERVICIO</p>
-          <div class="seg" id="cServ" role="group" aria-label="Servicio"></div>
+          <div class="seg seg-wrap" id="cServ" role="group" aria-label="Servicio"></div>
+          <p class="mt-3 text-[.92rem] text-ink-2" id="cServTxt"></p>
 
           <div class="mt-8 grid gap-8 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div>
-              <div class="flex items-center justify-between">
-                <p class="font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3" id="cQtyLbl">DÍAS</p>
-              </div>
+            <div class="min-w-0">
+              <p class="font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3" id="cQtyLbl">DÍAS</p>
               <div class="mt-3 flex items-center gap-4">
                 <div class="stepper">
-                  <button type="button" data-step="qty" data-d="-1" aria-label="Menos días"><svg class="h-5 w-5"><use href="#i-minus"/></svg></button>
+                  <button type="button" data-step="qty" data-d="-1" aria-label="Menos"><svg class="h-5 w-5"><use href="#i-minus"/></svg></button>
                   <output id="cQty" aria-live="polite">5</output>
-                  <button type="button" data-step="qty" data-d="1" aria-label="Más días"><svg class="h-5 w-5"><use href="#i-plus"/></svg></button>
+                  <button type="button" data-step="qty" data-d="1" aria-label="Más"><svg class="h-5 w-5"><use href="#i-plus"/></svg></button>
                 </div>
               </div>
-              <input type="range" class="slider mt-6" id="cRange" min="1" max="30" value="5" aria-label="Cantidad de días">
+              <input type="range" class="slider mt-6" id="cRange" min="1" max="30" value="5" aria-label="Cantidad">
             </div>
-            <div>
+            <div id="cDogsWrap">
               <p class="font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3">PERROS</p>
               <div class="stepper mt-3">
                 <button type="button" data-step="dogs" data-d="-1" aria-label="Menos perros"><svg class="h-5 w-5"><use href="#i-minus"/></svg></button>
@@ -298,12 +324,15 @@
             </div>
           </div>
 
+          <button type="button" class="xchip pv mt-7 w-full" id="cPv" aria-pressed="true" hidden><span class="box"><svg class="h-3.5 w-3.5"><use href="#i-check"/></svg></span><span class="min-w-0 text-left"><span class="block" id="cPvTit">Es su primera vez con nosotros</span><small class="block" id="cPvTxt"></small></span></button>
+
           <div class="mt-8" id="cExtrasWrap">
             <p class="font-mono text-[.75rem] font-semibold tracking-[.14em] text-ink-3">EXTRAS <span class="font-sans font-normal normal-case tracking-normal">· opcionales</span></p>
             <div class="mt-3 flex flex-wrap gap-2" id="cExtras" role="group" aria-label="Extras"></div>
           </div>
 
           <p class="mt-6 hidden items-center justify-between gap-3 rounded-2xl border-[1.5px] border-dashed border-cyan px-4 py-3 text-[.95rem]" id="cNudge"></p>
+          <p class="mt-4 flex items-start gap-2 text-[.9rem] text-ink-2" id="cEsp" hidden><svg class="mt-0.5 h-4 w-4 flex-none text-ball"><use href="#i-star"/></svg><span></span></p>
 
           <div class="my-8 border-t-2 border-dashed border-line"></div>
 
@@ -315,7 +344,33 @@
           </div>
           <a href="app/#cliente" class="btn btn-primary mt-6 w-full" id="cGo">Elegir fechas y reservar<svg><use href="#i-arrow"/></svg></a>
           <a href="#" class="btn btn-ghost mt-3 w-full" id="cWa" hidden><svg class="text-wa"><use href="#i-wa"/></svg>Consultar este precio por WhatsApp</a>
-          <p class="mt-4 text-center text-[.88rem] text-ink-3">Precio orientativo. Con las fechas exactas armás el presupuesto final en un minuto.</p>
+          <p class="mt-4 text-center text-[.88rem] text-ink-3" id="cNota">Precio orientativo. Con las fechas exactas armás el presupuesto final en un minuto.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== DISPONIBILIDAD ===================== -->
+    <section id="disponibilidad" class="bg-surface py-24 lg:py-32" hidden>
+      <div class="wrap">
+        <div class="reveal flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p class="eyebrow">Disponibilidad</p>
+            <h2 class="h2 mt-4" id="dTit">Fechas disponibles</h2>
+          </div>
+          <p class="lead lg:max-w-[46ch]" id="dBaj"></p>
+        </div>
+        <div class="reveal mt-12 grid gap-6 lg:grid-cols-2" id="dCals"></div>
+        <div class="mt-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex flex-wrap gap-x-5 gap-y-2 text-[.9rem] text-ink-2">
+            <span class="inline-flex items-center gap-2"><i class="dleg dleg-free"></i>Hay lugar</span>
+            <span class="inline-flex items-center gap-2"><i class="dleg dleg-few"></i>Quedan pocos</span>
+            <span class="inline-flex items-center gap-2"><i class="dleg dleg-full"></i>Completo o cerrado</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" class="grid h-11 w-11 place-items-center rounded-full border-[1.5px] border-line bg-bg" id="dPrev" aria-label="Meses anteriores"><svg class="h-5 w-5 rotate-180"><use href="#i-arrow"/></svg></button>
+            <button type="button" class="grid h-11 w-11 place-items-center rounded-full border-[1.5px] border-line bg-bg" id="dNext" aria-label="Meses siguientes"><svg class="h-5 w-5"><use href="#i-arrow"/></svg></button>
+            <a href="app/#cliente" class="btn btn-primary ml-2">Reservar fechas<svg><use href="#i-arrow"/></svg></a>
+          </div>
         </div>
       </div>
     </section>
@@ -352,9 +407,21 @@
       <div class="wrap">
         <div class="reveal">
           <p class="eyebrow">Lo que dicen</p>
-          <h2 class="h2 mt-4">Dueños tranquilos</h2>
+          <h2 class="h2 mt-4">Tutores tranquilos</h2>
         </div>
         <div class="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3" id="reviews"></div>
+      </div>
+    </section>
+
+    <!-- ===================== REQUISITOS ===================== -->
+    <section id="requisitos" class="pt-24 lg:pt-32" hidden>
+      <div class="wrap">
+        <div class="reveal max-w-[760px]">
+          <p class="eyebrow">Antes del primer día</p>
+          <h2 class="h2 mt-4">Requisitos obligatorios</h2>
+          <p class="lead mt-5">Los pedimos a todos por igual, sin excepciones. Así cuidamos la salud de tu perro y la de los demás.</p>
+        </div>
+        <div class="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3" id="rqGrid"></div>
       </div>
     </section>
 
@@ -408,6 +475,8 @@
         <ul class="mt-4 grid gap-3 font-semibold text-ink-2">
           <li><a class="hover:text-brand" href="#servicios">Servicios</a></li>
           <li><a class="hover:text-brand" href="#precios">Precios</a></li>
+          <li><a class="hover:text-brand" href="#disponibilidad">Disponibilidad</a></li>
+          <li><a class="hover:text-brand" href="#requisitos">Requisitos</a></li>
           <li><a class="hover:text-brand" href="#preguntas">Preguntas</a></li>
           <li><a class="hover:text-brand" href="app/">Acceso cuidador</a></li>
         </ul>
@@ -428,6 +497,7 @@
   <script src="assets/vendor/gsap.min.js" defer></script>
   <script src="assets/vendor/ScrollTrigger.min.js" defer></script>
   <script src="assets/vendor/lenis.min.js" defer></script>
+  <script src="assets/cotizador.js" defer></script>
   <script src="assets/landing.js" defer></script>
 </body>
 </html>

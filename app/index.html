@@ -40,6 +40,11 @@
       <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></symbol>
       <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></symbol>
       <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></symbol>
+      <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/></symbol>
+      <symbol id="i-dn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10l6 6 6-6"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 12h12"/></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4 4 0 0 0 .4-8A6 6 0 0 0 6.3 9.2 4.5 4.5 0 0 0 7 18z"/><path d="M12 10.5V16M9.5 13l2.5-2.5 2.5 2.5"/></symbol>
       <symbol id="i-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
       <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></symbol>
       <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
@@ -95,7 +100,7 @@
 
       <form id="form" autocomplete="on" novalidate>
         <fieldset class="step">
-          <legend><span class="step-n">1</span>Dueño o dueña</legend>
+          <legend><span class="step-n">1</span>Tutor o tutora</legend>
           <div class="panel">
             <div class="field">
               <label for="f-cliente">Nombre y apellido</label>
@@ -125,36 +130,55 @@
         </fieldset>
 
         <fieldset class="step">
-          <legend><span class="step-n">3</span>Estadía</legend>
+          <legend><span class="step-n">3</span><span id="stepServLbl">Servicio y fechas</span></legend>
           <div class="panel">
             <div class="field">
               <label for="selServicio">Servicio</label>
               <select id="selServicio" name="servicio"></select>
             </div>
-            <div class="cal" id="cal">
-              <div class="cal-head">
-                <button type="button" class="iconbtn" id="calPrev" aria-label="Mes anterior"><svg class="ic"><use href="#i-left"/></svg></button>
-                <span class="cal-title" id="calTitle"></span>
-                <button type="button" class="iconbtn" id="calNext" aria-label="Mes siguiente"><svg class="ic"><use href="#i-right"/></svg></button>
+
+            <div class="field" id="qtyField" hidden>
+              <label for="f-cant" id="qtyLbl">Cantidad</label>
+              <div class="stepper">
+                <button type="button" class="stp" data-qd="-1" aria-label="Menos">−</button>
+                <input id="f-cant" name="cantidad" type="number" min="1" step="1" inputmode="numeric">
+                <button type="button" class="stp" data-qd="1" aria-label="Más">+</button>
               </div>
-              <div class="cal-dow" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-              <div class="cal-grid" id="calGrid" role="group" aria-label="Días del mes"></div>
+              <p class="hint" id="qtyHint"></p>
             </div>
-            <p class="cal-hint" id="calHint"></p>
-            <div class="cal-tools" id="calTools">
-              <button type="button" class="btn btn-sm" id="calWeekdays">Sacar sábados y domingos</button>
-              <button type="button" class="btn btn-sm btn-quiet" id="calClear">Borrar fechas</button>
-            </div>
-            <div class="times">
-              <div class="field">
-                <label for="f-hin">Hora de ingreso</label>
-                <input id="f-hin" name="horaIn" type="time">
+
+            <div id="dateBlock">
+              <div class="cal" id="cal">
+                <div class="cal-head">
+                  <button type="button" class="iconbtn" id="calPrev" aria-label="Mes anterior"><svg class="ic"><use href="#i-left"/></svg></button>
+                  <span class="cal-title" id="calTitle"></span>
+                  <button type="button" class="iconbtn" id="calNext" aria-label="Mes siguiente"><svg class="ic"><use href="#i-right"/></svg></button>
+                </div>
+                <div class="cal-dow" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+                <div class="cal-grid" id="calGrid" role="group" aria-label="Días del mes"></div>
               </div>
-              <div class="field">
-                <label for="f-hout">Hora de retiro</label>
-                <input id="f-hout" name="horaOut" type="time">
+              <p class="cal-legend" id="calLegend" hidden><span><i class="lg lg-few"></i>Quedan pocos lugares</span><span><i class="lg lg-full"></i>Completo</span></p>
+              <p class="cal-hint" id="calHint"></p>
+              <div class="cal-tools" id="calTools">
+                <button type="button" class="btn btn-sm" id="calWeekdays">Sacar sábados y domingos</button>
+                <button type="button" class="btn btn-sm btn-quiet" id="calClear">Borrar fechas</button>
+              </div>
+              <div class="times">
+                <div class="field">
+                  <label for="f-hin">Hora de ingreso</label>
+                  <input id="f-hin" name="horaIn" type="time">
+                </div>
+                <div class="field">
+                  <label for="f-hout">Hora de retiro</label>
+                  <input id="f-hout" name="horaOut" type="time">
+                </div>
               </div>
             </div>
+
+            <label class="switch pv" id="pvField" for="f-pv">
+              <input type="checkbox" id="f-pv" name="primeraVez" checked>
+              <span><b id="pvTitle">Primera vez con nosotros</b><span class="opt" id="pvTxt"></span></span>
+            </label>
           </div>
         </fieldset>
 
@@ -201,10 +225,10 @@
     </section>
 
     <!-- ================= LINK CLIENTE ================= -->
-    <section id="tab-link" class="tab" aria-label="Link para clientes">
+    <section id="tab-link" class="tab" aria-label="Link para tutores">
       <div class="pagehead">
-        <h2>Link para clientes</h2>
-        <p>Tu cliente abre el link, carga los datos de su perro y la estadía, y ve el presupuesto con tus precios. Puede guardarlo como imagen y mandártelo a tu WhatsApp.</p>
+        <h2>Link para tutores</h2>
+        <p>El tutor abre el link, carga los datos de su perro y las fechas, y ve el presupuesto con tus precios y los días disponibles. Puede guardarlo como imagen y mandártelo a tu WhatsApp.</p>
       </div>
       <div class="panel">
         <label class="switch" for="linkPrefill">
@@ -232,7 +256,7 @@
         <p>Los últimos 100 presupuestos y recibos que hiciste en este celular. Marcá en qué estado está cada uno.</p>
       </div>
       <div class="hist-tools">
-        <input type="search" id="histQ" placeholder="Buscar por perro o dueño" aria-label="Buscar en el historial" autocomplete="off">
+        <input type="search" id="histQ" placeholder="Buscar por perro o tutor" aria-label="Buscar en el historial" autocomplete="off">
         <div class="seg" id="histF" role="group" aria-label="Filtrar por estado">
           <button type="button" class="on" data-f="todos">Todos</button>
           <button type="button" data-f="enviado">Enviados</button>
@@ -244,87 +268,225 @@
       <div id="historyList" class="panel list"></div>
     </section>
 
+    <!-- ================= AGENDA ================= -->
+    <section id="tab-agenda" class="tab" aria-label="Agenda y cupos">
+      <div class="pagehead">
+        <h2>Agenda y cupos</h2>
+        <p>Los presupuestos marcados como señados o pagados ocupan su lugar solos. Tocá un día para sumar reservas a mano o cerrarlo.</p>
+      </div>
+      <div class="pubcard" data-pubcard>
+        <div><p class="setup-t">Disponibilidad en la web</p><p class="setup-d" data-pubstate></p></div>
+        <button type="button" class="btn btn-primary btn-sm" data-publicar><svg class="ic"><use href="#i-cloud"/></svg>Publicar</button>
+      </div>
+      <div class="panel">
+        <div class="grid2">
+          <div class="field"><label for="c-cap">Perros por día</label><input id="c-cap" data-cfg="cupos.capacidad" type="number" min="1" step="1" inputmode="numeric"></div>
+          <div class="field"><label for="c-few">Avisar "quedan pocos" con</label><input id="c-few" data-cfg="cupos.avisoQuedan" type="number" min="0" step="1" inputmode="numeric"></div>
+        </div>
+        <label class="switch" for="c-cupos"><input type="checkbox" id="c-cupos" data-cfg="cupos.activo"><span>Mostrar los días disponibles en la web y no dejar elegir días completos</span></label>
+      </div>
+      <div class="cal ag" id="agCal">
+        <div class="cal-head">
+          <button type="button" class="iconbtn" id="agPrev" aria-label="Mes anterior"><svg class="ic"><use href="#i-left"/></svg></button>
+          <span class="cal-title" id="agTitle"></span>
+          <button type="button" class="iconbtn" id="agNext" aria-label="Mes siguiente"><svg class="ic"><use href="#i-right"/></svg></button>
+        </div>
+        <div class="cal-dow" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <div class="cal-grid" id="agGrid" role="group" aria-label="Ocupación del mes"></div>
+      </div>
+      <p class="cal-legend"><span><i class="lg lg-free"></i>Libre</span><span><i class="lg lg-few"></i>Quedan pocos</span><span><i class="lg lg-full"></i>Completo</span><span><i class="lg lg-closed"></i>Cerrado</span></p>
+      <div class="panel" id="agDay" hidden></div>
+    </section>
+
     <!-- ================= AJUSTES ================= -->
     <section id="tab-ajustes" class="tab" aria-label="Ajustes">
       <div class="pagehead">
         <h2>Ajustes</h2>
-        <p>Lo que cargues acá aparece solo en cada recibo y en los links para clientes. Se guarda al escribir.</p>
+        <p>Todo se guarda al escribir. Cuando termines, tocá <b>Publicar</b> para que la web muestre los cambios.</p>
       </div>
       <form id="cfgForm" novalidate>
-        <h3 class="legend">Tu negocio</h3>
-        <div class="panel">
-          <div class="grid2">
-            <div class="field"><label for="c-neg">Nombre del negocio</label><input id="c-neg" data-cfg="negocio"></div>
-            <div class="field"><label for="c-resp">Tu nombre</label><input id="c-resp" data-cfg="responsable"></div>
-            <div class="field"><label for="c-tel">WhatsApp <span class="opt">con 549</span></label><input id="c-tel" data-cfg="telefono" type="tel" placeholder="5491155555555"></div>
-            <div class="field"><label for="c-red">Instagram o web</label><input id="c-red" data-cfg="redes" placeholder="@miguarderia"></div>
+        <div class="pubcard" data-pubcard>
+          <div><p class="setup-t">Tu página web</p><p class="setup-d" data-pubstate></p></div>
+          <button type="button" class="btn btn-primary btn-sm" data-publicar><svg class="ic"><use href="#i-cloud"/></svg>Publicar</button>
+        </div>
+
+        <details class="grp" open>
+          <summary>Tu negocio</summary>
+          <div class="grp-body">
+            <div class="panel">
+              <div class="grid2">
+                <div class="field"><label for="c-neg">Nombre del negocio</label><input id="c-neg" data-cfg="negocio"></div>
+                <div class="field"><label for="c-resp">Tu nombre</label><input id="c-resp" data-cfg="responsable"></div>
+                <div class="field"><label for="c-tel">WhatsApp <span class="opt">con 549</span></label><input id="c-tel" data-cfg="telefono" type="tel" placeholder="5491155555555"></div>
+                <div class="field"><label for="c-red">Instagram</label><input id="c-red" data-cfg="redes" placeholder="@inquietoscaninos"></div>
+                <div class="field"><label for="c-zona">Zona o barrio</label><input id="c-zona" data-cfg="zona"></div>
+                <div class="field"><label for="c-dir">Dirección exacta <span class="opt">opcional</span></label><input id="c-dir" data-cfg="direccion"></div>
+              </div>
+              <div class="field"><label for="c-hor">Horario de atención</label><input id="c-hor" data-cfg="horario"></div>
+              <div class="field"><label for="c-rub">Qué hacés <span class="opt">aparece arriba del título de la web</span></label><input id="c-rub" data-cfg="rubros"></div>
+            </div>
+            <h4 class="sub">Datos para transferir</h4>
+            <div class="panel">
+              <div class="grid2">
+                <div class="field"><label for="c-alias">Alias</label><input id="c-alias" data-cfg="alias"></div>
+                <div class="field"><label for="c-cbu">CBU o CVU</label><input id="c-cbu" data-cfg="cbu" inputmode="numeric"></div>
+                <div class="field"><label for="c-tit">Titular</label><input id="c-tit" data-cfg="titular"></div>
+                <div class="field"><label for="c-banco">Banco o billetera</label><input id="c-banco" data-cfg="banco"></div>
+              </div>
+            </div>
+            <h4 class="sub">Horario habitual de ingreso y retiro</h4>
+            <div class="panel">
+              <div class="grid2">
+                <div class="field"><label for="c-hin">Ingreso</label><input id="c-hin" data-cfg="horaIn" type="time"></div>
+                <div class="field"><label for="c-hout">Retiro</label><input id="c-hout" data-cfg="horaOut" type="time"></div>
+              </div>
+            </div>
           </div>
-          <div class="field"><label for="c-dir">Zona o dirección</label><input id="c-dir" data-cfg="direccion"></div>
-        </div>
+        </details>
 
-        <h3 class="legend">Datos para transferir</h3>
-        <div class="panel">
-          <div class="grid2">
-            <div class="field"><label for="c-alias">Alias</label><input id="c-alias" data-cfg="alias"></div>
-            <div class="field"><label for="c-cbu">CBU o CVU</label><input id="c-cbu" data-cfg="cbu" inputmode="numeric"></div>
-            <div class="field"><label for="c-tit">Titular</label><input id="c-tit" data-cfg="titular"></div>
-            <div class="field"><label for="c-banco">Banco o billetera</label><input id="c-banco" data-cfg="banco"></div>
+        <details class="grp">
+          <summary>Servicios y precios</summary>
+          <div class="grp-body">
+            <p class="hint">Cada servicio tiene su precio, cómo se cobra, sus etiquetas y sus descuentos. Tocá uno para ver todas las opciones.</p>
+            <div id="edSrv" class="srv-list"></div>
+            <button type="button" class="btn btn-sm ed-add" id="srvAdd"><svg class="ic"><use href="#i-plus"/></svg>Agregar servicio</button>
           </div>
-        </div>
+        </details>
 
-        <h3 class="legend">Horario habitual</h3>
-        <div class="panel">
-          <div class="grid2">
-            <div class="field"><label for="c-hin">Ingreso</label><input id="c-hin" data-cfg="horaIn" type="time"></div>
-            <div class="field"><label for="c-hout">Retiro</label><input id="c-hout" data-cfg="horaOut" type="time"></div>
+        <details class="grp">
+          <summary>Extras</summary>
+          <div class="grp-body">
+            <p class="hint">Se suman al presupuesto si el tutor los marca. Elegí cómo se cobra cada uno.</p>
+            <div class="panel" id="edExtras"></div>
           </div>
-        </div>
+        </details>
 
-        <h3 class="legend">Servicios</h3>
-        <p class="hint">Por día cuenta ingreso y retiro incluidos. Por noche cuenta las noches entre las dos fechas.</p>
-        <div class="panel" id="edServicios"></div>
-
-        <h3 class="legend">Recargo por tamaño</h3>
-        <p class="hint">Solo si cobrás distinto según el tamaño. Si agregás alguno, aparece para elegir en cada perro.</p>
-        <div class="panel" id="edTamanos"></div>
-
-        <h3 class="legend">Extras</h3>
-        <p class="hint">Único se cobra una vez. Por día se multiplica por los días o noches de la estadía.</p>
-        <div class="panel" id="edExtras"></div>
-
-        <h3 class="legend">Formas de pago</h3>
-        <p class="hint">Descuento en %. Un número negativo es recargo: -10 suma un 10%.</p>
-        <div class="panel" id="edPagos"></div>
-
-        <h3 class="legend">Descuento por estadía larga</h3>
-        <p class="hint">Se aplica sobre el servicio a partir de esa cantidad de días.</p>
-        <div class="panel" id="edDescEstadia"></div>
-
-        <h3 class="legend">Seña y otros descuentos</h3>
-        <div class="panel">
-          <div class="grid2">
-            <div class="field"><label for="c-senia">Seña para reservar <span class="opt">%</span></label><input id="c-senia" data-cfg="seniaPct" type="number" step="1" inputmode="numeric"></div>
-            <div class="field"><label for="c-dpa">Perro adicional <span class="opt">% desc.</span></label><input id="c-dpa" data-cfg="descPerroAdicional" type="number" step="0.5" inputmode="decimal"></div>
-            <div class="field"><label for="c-val">Validez del presupuesto <span class="opt">días</span></label><input id="c-val" data-cfg="validez" type="number" min="0" inputmode="numeric"></div>
-            <div class="field"><label for="c-num">Próximo N° de recibo</label><input id="c-num" data-cfg="nextNumero" type="number" min="1" inputmode="numeric"></div>
+        <details class="grp">
+          <summary>Pagos, seña y descuentos</summary>
+          <div class="grp-body">
+            <p class="hint">Descuento en %. Un número negativo es recargo: -10 suma un 10%.</p>
+            <div class="panel" id="edPagos"></div>
+            <div class="panel">
+              <div class="grid2">
+                <div class="field"><label for="c-senia">Seña para reservar <span class="opt">%</span></label><input id="c-senia" data-cfg="seniaPct" type="number" step="1" inputmode="numeric"></div>
+                <div class="field"><label for="c-dpa">Segundo perro en adelante <span class="opt">% desc.</span></label><input id="c-dpa" data-cfg="descPerroAdicional" type="number" step="0.5" inputmode="decimal"></div>
+                <div class="field"><label for="c-val">Validez del presupuesto <span class="opt">días</span></label><input id="c-val" data-cfg="validez" type="number" min="0" inputmode="numeric"></div>
+                <div class="field"><label for="c-red0">Redondear totales</label>
+                  <select id="c-red0" data-cfg="redondeo" data-num><option value="0">No redondear</option><option value="100">A $100</option><option value="500">A $500</option><option value="1000">A $1.000</option></select></div>
+                <div class="field"><label for="c-num">Próximo N° de presupuesto</label><input id="c-num" data-cfg="nextNumero" type="number" min="1" inputmode="numeric"></div>
+              </div>
+            </div>
+            <h4 class="sub">Recargo por tamaño</h4>
+            <p class="hint">Solo si cobrás distinto según el tamaño. Si agregás alguno, aparece para elegir en cada perro.</p>
+            <div class="panel" id="edTamanos"></div>
           </div>
-        </div>
+        </details>
 
-        <h3 class="legend">Condiciones</h3>
-        <p class="hint">Una por renglón. Salen al pie de cada recibo con un tilde.</p>
-        <div class="panel">
-          <div class="field"><label for="c-cond" class="sr">Condiciones</label><textarea id="c-cond" data-cfg="condiciones" rows="7"></textarea></div>
-        </div>
-
-        <h3 class="legend">Copia de seguridad</h3>
-        <div class="panel">
-          <div class="row-btns">
-            <button type="button" class="btn" id="btnExport"><svg class="ic"><use href="#i-down"/></svg>Exportar</button>
-            <label class="btn" for="fileImport"><svg class="ic"><use href="#i-share"/></svg>Importar</label>
-            <input type="file" id="fileImport" accept="application/json" hidden>
+        <details class="grp">
+          <summary>Visita de adaptación</summary>
+          <div class="grp-body">
+            <div class="panel">
+              <label class="switch" for="c-ad-on"><input type="checkbox" id="c-ad-on" data-cfg="adaptacion.activa"><span>Cobrar la visita de adaptación obligatoria a los perros nuevos</span></label>
+              <div class="field"><label for="c-ad-n">Nombre</label><input id="c-ad-n" data-cfg="adaptacion.nombre"></div>
+              <div class="grid2">
+                <div class="field"><label for="c-ad-p">Precio <span class="opt">% de un día del servicio</span></label><input id="c-ad-p" data-cfg="adaptacion.pct" type="number" min="0" step="1" inputmode="numeric"></div>
+                <div class="field"><label for="c-ad-f">O precio fijo <span class="opt">$, 0 = usar %</span></label><input id="c-ad-f" data-cfg="adaptacion.fijo" type="number" min="0" step="1" inputmode="numeric"></div>
+                <div class="field"><label for="c-ad-v">Vale hasta <span class="opt">días antes del ingreso</span></label><input id="c-ad-v" data-cfg="adaptacion.validezDias" type="number" min="0" step="1" inputmode="numeric"></div>
+              </div>
+              <label class="switch" for="c-ad-pp"><input type="checkbox" id="c-ad-pp" data-cfg="adaptacion.porPerro"><span>Se cobra por cada perro</span></label>
+              <div class="field"><label for="c-ad-t">Explicación para los tutores</label><textarea id="c-ad-t" data-cfg="adaptacion.texto" rows="3"></textarea></div>
+              <p class="hint">En cada servicio elegís si necesita adaptación (Servicios y precios → opciones del servicio).</p>
+            </div>
           </div>
-          <button type="button" class="btn btn-danger btn-block" id="btnFactory">Volver a los valores de fábrica</button>
-        </div>
+        </details>
+
+        <details class="grp">
+          <summary>Fechas especiales</summary>
+          <div class="grp-body">
+            <p class="hint">Recargo en % para feriados o temporada alta. Escribí <b>12-24</b> para que se repita todos los años, o <b>2026-12-24</b> para un año puntual. Si un día tiene varios recargos, se aplica el mayor.</p>
+            <div class="panel" id="edFechas"></div>
+          </div>
+        </details>
+
+        <details class="grp">
+          <summary>Textos de la calculadora</summary>
+          <div class="grp-body">
+            <div class="panel">
+              <div class="field"><label for="t-1">Título</label><input id="t-1" data-cfg="textos.calcTitulo"></div>
+              <div class="field"><label for="t-2">Bajada</label><textarea id="t-2" data-cfg="textos.calcBajada" rows="2"></textarea></div>
+              <div class="grid2">
+                <div class="field"><label for="t-3">Botón (con fechas)</label><input id="t-3" data-cfg="textos.calcBoton"></div>
+                <div class="field"><label for="t-4">Botón (por cantidad)</label><input id="t-4" data-cfg="textos.calcBotonCantidad"></div>
+              </div>
+              <div class="field"><label for="t-5">Nota al pie</label><input id="t-5" data-cfg="textos.calcNota"></div>
+              <div class="field"><label for="t-6">Opción de primera vez</label><input id="t-6" data-cfg="textos.primeraVez"></div>
+              <div class="field"><label for="t-7">Título de disponibilidad</label><input id="t-7" data-cfg="textos.dispTitulo"></div>
+              <div class="field"><label for="t-8">Bajada de disponibilidad</label><textarea id="t-8" data-cfg="textos.dispBajada" rows="2"></textarea></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="grp">
+          <summary>Página web</summary>
+          <div class="grp-body">
+            <div class="panel">
+              <label class="switch" for="c-mp"><input type="checkbox" id="c-mp" data-cfg="mostrarPrecios"><span>Mostrar precios y calculadora en la web</span></label>
+              <div class="field"><label for="c-av">Aviso destacado <span class="opt">vacío = sin aviso</span></label><input id="c-av" data-cfg="aviso.texto"></div>
+              <div class="field"><label for="c-ed1">Título de educación</label><input id="c-ed1" data-cfg="educador.titulo"></div>
+              <div class="field"><label for="c-ed2">Texto de educación</label><textarea id="c-ed2" data-cfg="educador.texto" rows="3"></textarea></div>
+              <div class="field"><label for="c-ed3">Puntos de educación <span class="opt">uno por renglón</span></label><textarea id="c-ed3" data-cfg="educador.puntos" data-lines rows="3"></textarea></div>
+              <div class="field"><label for="c-rq1">Qué es obligatorio traer <span class="opt">uno por renglón</span></label><textarea id="c-rq1" data-cfg="requisitos.llevar" data-lines rows="4"></textarea></div>
+              <div class="field"><label for="c-rq2">Vacunas obligatorias <span class="opt">una por renglón</span></label><textarea id="c-rq2" data-cfg="requisitos.vacunas" data-lines rows="4"></textarea></div>
+            </div>
+            <h4 class="sub">Preguntas frecuentes</h4>
+            <div class="panel" id="edPreg"></div>
+          </div>
+        </details>
+
+        <details class="grp">
+          <summary>Condiciones del presupuesto</summary>
+          <div class="grp-body">
+            <p class="hint">Una por renglón. Salen al pie de cada presupuesto con un tilde.</p>
+            <div class="panel"><div class="field"><label for="c-cond" class="sr">Condiciones</label><textarea id="c-cond" data-cfg="condiciones" rows="8"></textarea></div></div>
+          </div>
+        </details>
+
+        <details class="grp" id="grpGh">
+          <summary>Conexión con la web (GitHub)</summary>
+          <div class="grp-body">
+            <div class="panel">
+              <p class="hint" style="margin:0">Para que el botón <b>Publicar</b> actualice tu página, la app necesita una clave de GitHub. Se crea una sola vez y queda guardada solo en este celular.</p>
+              <ol class="steps-mini">
+                <li>Entrá a <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
+                <li>Nombre: <b>App Inquietos</b>. Vencimiento: el más largo que te deje.</li>
+                <li>En <b>Repository access</b> elegí <b>Only select repositories</b> y marcá <b id="ghRepoName">WebGuarderiaCanina</b>.</li>
+                <li>En <b>Permissions → Repository permissions → Contents</b> elegí <b>Read and write</b>.</li>
+                <li>Tocá <b>Generate token</b>, copiá la clave y pegala acá abajo.</li>
+              </ol>
+              <div class="field"><label for="gh-repo">Repositorio <span class="opt">usuario/nombre</span></label><input id="gh-repo" autocomplete="off" spellcheck="false"></div>
+              <div class="field"><label for="gh-tok">Clave (token)</label><input id="gh-tok" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_..."></div>
+              <div class="row-btns">
+                <button type="button" class="btn" id="ghSave">Guardar y probar</button>
+                <button type="button" class="btn btn-quiet" id="ghForget">Olvidar clave</button>
+              </div>
+              <p class="hint" id="ghState" aria-live="polite"></p>
+            </div>
+          </div>
+        </details>
+
+        <details class="grp">
+          <summary>Copia de seguridad</summary>
+          <div class="grp-body">
+            <div class="panel">
+              <div class="row-btns">
+                <button type="button" class="btn" id="btnExport"><svg class="ic"><use href="#i-down"/></svg>Exportar</button>
+                <label class="btn" for="fileImport"><svg class="ic"><use href="#i-share"/></svg>Importar</label>
+                <input type="file" id="fileImport" accept="application/json" hidden>
+              </div>
+              <button type="button" class="btn btn-danger btn-block" id="btnFactory">Volver a los valores de la web</button>
+            </div>
+          </div>
+        </details>
       </form>
     </section>
   </main>
@@ -333,6 +495,7 @@
     <button data-tab="recibo" class="active"><svg><use href="#i-ticket"/></svg><span>Nuevo</span></button>
     <button data-tab="link"><svg><use href="#i-link"/></svg><span>Link</span></button>
     <button data-tab="historial"><svg><use href="#i-list"/></svg><span>Historial</span></button>
+    <button data-tab="agenda"><svg><use href="#i-cal"/></svg><span>Agenda</span></button>
     <button data-tab="ajustes"><svg><use href="#i-sliders"/></svg><span>Ajustes</span></button>
   </nav>
 
@@ -365,6 +528,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
 
   <script src="../config.js"></script>
+  <script src="../assets/cotizador.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

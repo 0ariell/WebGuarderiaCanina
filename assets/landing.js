@@ -1,20 +1,26 @@
 /* Inquietos Caninos · landing
-   Arma las secciones con los datos de config.js, maneja la calculadora y las animaciones. */
+   Arma las secciones con los datos de config.js, calcula con el mismo motor que la app (assets/cotizador.js)
+   y maneja la disponibilidad, las animaciones y la navegación. */
 (function () {
   'use strict';
   const C = window.INQUIETOS || {};
+  const K = window.Cotizador;
+  const CN = K.config(C);                       // configuración normalizada (servicios, extras, cupos…)
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const nf = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
-  const money = (n) => '$' + nf.format(Math.round(n));
-  const pct = (p) => String(+(+p).toFixed(2)).replace('.', ',') + '%';
+  const money = K.money, pct = K.pct, num = K.num;
   const icon = (id, cls = 'h-5 w-5') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const T = Object.assign({}, C.textos);
+  const precios = C.mostrarPrecios !== false;
 
-  const servicios = (C.servicios || []).filter((s) => s && s.nombre);
-  const pagos = (C.pagos && C.pagos.length ? C.pagos : [{ nombre: '', descuento: 0 }]);
-  const unidad = (s) => (s.unidad === 'noche' ? ['noche', 'noches'] : ['día', 'días']);
+  /* servicios visibles en la web, con su índice real (la app los recibe por índice) */
+  const web = CN.servicios.map((s, i) => ({ s, i })).filter((x) => x.s.web);
+  const cats = [];
+  web.forEach((x) => { if (!cats.includes(x.s.categoria)) cats.push(x.s.categoria); });
+  const featured = (web.find((x) => x.s.destacado) || web.find((x) => /estad/i.test(x.s.nombre)) || web[0] || { i: 0 }).i;
+  const unidadTxt = (s, q) => (q === 1 ? s.unidad : s.unidadPlural);
 
   /* ---------------- contacto ---------------- */
   const wa = String(C.whatsapp || '').replace(/\D/g, '');
@@ -50,12 +56,12 @@
       '@context': 'https://schema.org', '@type': 'LocalBusiness', '@id': location.origin + location.pathname + '#negocio',
       name: C.negocio || 'Inquietos Caninos', url: location.origin + location.pathname,
       image: new URL('assets/img/og.jpg', location.href).href, logo: new URL('icons/logo.png', location.href).href,
-      description: 'Paseos, guardería de día y estadías para perros.',
+      description: 'Paseos, guardería de día, estadías y clases de educación canina.',
       areaServed: C.zona || undefined, priceRange: '$$',
       telephone: wa ? '+' + wa : undefined,
       sameAs: ig ? [`https://instagram.com/${ig}`] : undefined,
       address: C.direccion || C.zona ? { '@type': 'PostalAddress', streetAddress: C.direccion || undefined, addressLocality: C.zona || undefined, addressCountry: 'AR' } : undefined,
-      makesOffer: (C.servicios || []).map((s) => ({ '@type': 'Offer', name: s.nombre, priceCurrency: 'ARS', price: s.precio,
+      makesOffer: web.map(({ s }) => ({ '@type': 'Offer', name: s.nombre, priceCurrency: 'ARS', price: precios ? s.precio : undefined,
         itemOffered: { '@type': 'Service', name: s.nombre, description: s.bajada || undefined } })),
     };
     const el = document.createElement('script'); el.type = 'application/ld+json'; el.textContent = JSON.stringify(ld);
@@ -63,60 +69,87 @@
   } catch { /* opcional */ }
 
   /* ---------------- franja ---------------- */
-  const words = [...servicios.map((s) => s.nombre), 'Juego', 'Descanso', 'Mimos', 'Fotos'];
+  const words = [...web.map((x) => x.s.nombre), 'Juego', 'Descanso', 'Mimos', 'Fotos'];
   const run = words.map((w) => `<span class="flex items-center gap-8 pr-8">${esc(w)}<span class="h-4 w-4 rounded-full bg-ball"></span></span>`).join('');
   $('#marquee').innerHTML = `<div class="flex">${run}${run}</div><div class="flex" aria-hidden="true">${run}${run}</div>`;
 
   /* ---------------- servicios ---------------- */
-  const featured = servicios.findIndex((s) => /estad/i.test(s.nombre));
-  $('#svcGrid').innerHTML = servicios.map((s, i) => {
-    const f = i === (featured < 0 ? 0 : featured);
-    const [u1] = unidad(s);
+  const tiersTxt = (s) => (s.descCantidad || []).slice().sort((a, b) => a.desde - b.desde)
+    .map((t) => `${pct(t.pct)} menos desde ${t.desde} ${unidadTxt(s, t.desde)}`);
+  const grid = $('#svcGrid');
+  grid.className = `mt-14 grid gap-5 md:grid-cols-2 ${web.length === 4 ? 'xl:grid-cols-4' : web.length >= 3 ? 'lg:grid-cols-3' : ''}`;
+  grid.innerHTML = web.map(({ s, i }) => {
+    const f = i === featured;
+    const t = tiersTxt(s)[0];
     return `<article class="svc reveal ${f ? 'featured' : ''}">
       <div class="flex items-start justify-between gap-4">
-        <span class="svc-icon">${icon(s.icono || ['casa', 'sol', 'correa'][i % 3], '')}</span>
+        <span class="svc-icon">${icon(s.icono || (s.cobro === 'cantidad' ? 'educacion' : 'casa'), '')}</span>
         ${f ? '<span class="rounded-full bg-white/15 px-3 py-1.5 font-mono text-[.7rem] font-semibold tracking-[.12em]">EL MÁS PEDIDO</span>' : ''}
       </div>
       <div>
-        <h3 class="font-display text-[1.75rem] font-extrabold leading-tight [font-stretch:110%]">${esc(s.nombre)}</h3>
+        <p class="font-mono text-[.72rem] font-semibold tracking-[.14em] ${f ? 'text-white/70' : 'text-cyan-ink'}">${esc(s.categoria.toUpperCase())}</p>
+        <h3 class="mt-1 font-display text-[1.6rem] font-extrabold leading-tight [font-stretch:110%]">${esc(s.nombre)}</h3>
         <p class="mt-2 ${f ? 'text-white/80' : 'text-ink-2'}">${esc(s.bajada || '')}</p>
       </div>
-      ${C.mostrarPrecios !== false ? `<p class="flex items-baseline gap-2"><span class="font-display text-[2.3rem] font-black leading-none tracking-tight [font-stretch:108%]">${money(s.precio)}</span><span class="${f ? 'text-white/75' : 'text-ink-3'} font-semibold">por ${u1}</span></p>` : ''}
-      <ul class="grid gap-2.5">${(s.incluye || []).map((x) => `<li class="flex items-start gap-2.5">${icon('check', `mt-0.5 h-5 w-5 flex-none ${f ? 'text-[#7fd8f0]' : 'text-cyan'}`)}<span>${esc(x)}</span></li>`).join('')}</ul>
+      ${precios ? `<div><p class="flex items-baseline gap-2"><span class="font-display text-[2.2rem] font-black leading-none tracking-tight [font-stretch:108%]">${money(s.precio)}</span><span class="${f ? 'text-white/75' : 'text-ink-3'} font-semibold">por ${esc(s.unidad)}</span></p>
+        ${t ? `<p class="mt-2 inline-flex rounded-full ${f ? 'bg-white/15' : 'bg-sky text-brand'} px-3 py-1 text-[.82rem] font-semibold">${esc(t)}</p>` : ''}</div>` : ''}
+      <ul class="grid gap-2.5">${s.incluye.map((x) => `<li class="flex items-start gap-2.5">${icon('check', `mt-0.5 h-5 w-5 flex-none ${f ? 'text-[#7fd8f0]' : 'text-cyan'}`)}<span>${esc(x)}</span></li>`).join('')}</ul>
       <button type="button" data-pick="${i}" class="mt-auto inline-flex items-center gap-2 self-start pt-2 font-bold ${f ? 'text-white' : 'text-brand'} group">
         Calcular ${esc(s.nombre.toLowerCase())}<span class="transition-transform duration-300 group-hover:translate-x-1">${icon('arrow')}</span>
       </button>
     </article>`;
   }).join('');
 
+  /* ---------------- educación ---------------- */
+  const edu = C.educador || {};
+  const eduSrv = web.find((x) => x.s.cobro === 'cantidad' && /educa|clase|adiestr/i.test(x.s.nombre + x.s.categoria)) || web.find((x) => /educa/i.test(x.s.categoria));
+  if (edu.titulo || edu.texto) {
+    $('#educacion').hidden = false;
+    $('#edTit').textContent = edu.titulo || 'Educación canina';
+    $('#edTxt').textContent = edu.texto || '';
+    $('#edPts').innerHTML = (edu.puntos || []).map((p) => `<li class="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-[.95rem] font-semibold">${icon('check', 'h-4 w-4 text-cyan')}${esc(p)}</li>`).join('');
+    if (eduSrv && precios) {
+      const t = (eduSrv.s.descCantidad || []).slice().sort((a, b) => b.pct - a.pct)[0];
+      $('#edPack').hidden = false;
+      $('#edPack').textContent = t ? `${pct(t.pct)} menos desde ${t.desde} ${unidadTxt(eduSrv.s, t.desde)}` : `${money(eduSrv.s.precio)} por ${eduSrv.s.unidad}`;
+    }
+    if (eduSrv) $('#edCalc').addEventListener('click', () => { pick(eduSrv.i); goTo('#precios'); });
+    else $('#edCalc').hidden = true;
+  } else $$('a[href="#educacion"]').forEach((a) => a.parentElement.tagName === 'LI' ? a.parentElement.remove() : a.remove());
+
+  /* ---------------- pasos: adaptación ---------------- */
+  const A = CN.adaptacion;
+  if (A.activa) {
+    $('#stAdTit').textContent = A.nombre;
+    $('#stAdTxt').textContent = A.texto || `Obligatoria para todos los perros nuevos, aunque ya hayan ido a otra guardería${A.validezDias ? `. Vale si la hacés hasta ${A.validezDias} días antes del ingreso` : ''}.`;
+  } else $('#stAdTit').closest('li').remove();
+
   /* ---------------- calculadora ---------------- */
-  const extrasCfg = (C.extras || []).filter((x) => x && x.nombre);
-  const calc = { s: Math.max(0, featured), qty: 5, dogs: 1, ex: new Set() };
+  if (T.calcTitulo) $('#cTitulo').textContent = T.calcTitulo;
+  if (T.calcBajada) $('#cBajada').textContent = T.calcBajada;
+  if (T.calcNota) $('#cNota').textContent = T.calcNota;
+  if (T.primeraVez) $('#cPvTit').textContent = T.primeraVez;
+  const extrasWeb = CN.extras.map((x, i) => ({ x, i })).filter((e) => e.x.web);
+  const calc = { s: featured, qty: 5, dogs: 1, ex: new Set(), pv: true };
+  const sv = () => CN.servicios[calc.s] || CN.servicios[0];
+
   const perks = [];
-  pagos.forEach((p) => { if (+p.descuento > 0) perks.push([`${pct(p.descuento)} menos pagando ${p.nombre.toLowerCase()}`, 'heart']); });
-  (C.descEstadia || []).filter((t) => +t.desde && +t.pct).forEach((t) => perks.push([`${pct(t.pct)} menos desde ${t.desde} días`, 'cal']));
-  if (+C.descPerroAdicional) perks.push([`${pct(C.descPerroAdicional)} menos desde el segundo perro`, 'paw']);
-  if (+C.seniaPct) perks.push([`Reservás con una seña del ${pct(C.seniaPct)}`, 'shield']);
+  CN.pagos.forEach((p) => { if (num(p.descuento) > 0) perks.push([`${pct(p.descuento)} menos pagando ${String(p.nombre).toLowerCase()}`, 'heart']); });
+  const packs = web.filter((x) => x.s.cobro === 'cantidad' && (x.s.descCantidad || []).length);
+  if (packs.length) perks.push([`Packs de ${packs.map((x) => x.s.unidadPlural).filter((v, j, a) => a.indexOf(v) === j).join(' y ')} con descuento`, 'educacion']);
+  const largas = web.filter((x) => x.s.cobro !== 'cantidad' && (x.s.descCantidad || []).length);
+  if (largas.length) { const t = largas[0].s.descCantidad.slice().sort((a, b) => a.desde - b.desde)[0]; perks.push([`${pct(t.pct)} menos en estadías desde ${t.desde} ${unidadTxt(largas[0].s, t.desde)}`, 'cal']); }
+  if (num(C.descPerroAdicional)) perks.push([`${pct(C.descPerroAdicional)} menos desde el segundo perro`, 'paw']);
+  if (num(C.seniaPct)) perks.push([`Reservás con una seña del ${pct(C.seniaPct)}`, 'shield']);
   $('#perks').innerHTML = perks.map(([t, ic]) => `<li class="flex items-center gap-3 font-semibold"><span class="grid h-10 w-10 flex-none place-items-center rounded-full bg-sky text-brand">${icon(ic)}</span>${esc(t)}</li>`).join('');
 
-  if (C.mostrarPrecios === false) { $('#precios').hidden = true; $$('a[href="#precios"]').forEach((a) => (a.href = 'app/#cliente')); }
+  if (!precios) { $('#precios').hidden = true; $$('a[href="#precios"]').forEach((a) => (a.href = 'app/#cliente')); }
 
-  function compute() {
-    const s = servicios[calc.s]; if (!s) return null;
-    const unit = +s.precio || 0, dp = +C.descPerroAdicional || 0;
-    let serv = 0;
-    for (let i = 0; i < calc.dogs; i++) serv += unit * calc.qty * (i > 0 ? 1 - dp / 100 : 1);
-    const tier = (C.descEstadia || []).filter((t) => +t.desde && calc.qty >= +t.desde).sort((a, b) => b.desde - a.desde)[0];
-    const larga = tier ? serv * (+tier.pct || 0) / 100 : 0;
-    const extras = [...calc.ex].reduce((a, i) => { const x = extrasCfg[i]; return a + (+x.precio || 0) * (x.unidad === 'dia' ? calc.qty : 1); }, 0);
-    const base = serv - larga + extras;
-    // próximo escalón de descuento por estadía larga (para sugerirlo)
-    const next = (C.descEstadia || []).filter((t) => +t.desde > calc.qty && +t.pct > (tier ? +tier.pct : 0)).sort((a, b) => a.desde - b.desde)[0];
-    const totals = pagos.map((p) => ({ nombre: p.nombre, d: +p.descuento || 0, total: Math.round(base * (1 - (+p.descuento || 0) / 100)) }));
-    const best = Math.min(...totals.map((t) => t.total));
-    const senia = Math.round(Math.max(...totals.map((t) => t.total)) * (+C.seniaPct || 0) / 100);
-    return { s, unit, larga, tier, totals, best, senia, extras, next };
-  }
+  /* fechas especiales (se aplican con fechas exactas en la app) */
+  const especiales = (CN.fechasEspeciales || []).map((f) => {
+    const fmt = (d) => { const p = String(d).split('-'); return p.length === 2 ? `${+p[1]}/${+p[0]}` : `${+p[2]}/${+p[1]}`; };
+    return `${f.nombre} (${fmt(f.desde)}${f.hasta && f.hasta !== f.desde ? `–${fmt(f.hasta)}` : ''}) +${pct(f.recargo)}`;
+  });
 
   let shown = {};
   function tween(el, to) {
@@ -125,90 +158,187 @@
     const o = { v: from };
     window.gsap.to(o, { v: to, duration: .5, ease: 'power3.out', onUpdate: () => (el.textContent = money(o.v)) });
   }
-
+  function pick(i) {
+    const s = K.servicio(C.servicios[i], i);
+    calc.s = i; calc.qty = s.cantidadDefecto; renderCalc();
+  }
   function renderCalc() {
-    $('#cServ').innerHTML = servicios.map((s, i) => `<button type="button" aria-pressed="${i === calc.s}" data-serv="${i}">${esc(s.nombre)}</button>`).join('');
-    $('#cExtrasWrap').hidden = !extrasCfg.length;
-    $('#cExtras').innerHTML = extrasCfg.map((x, i) => `<button type="button" class="xchip" data-ex="${i}" aria-pressed="false"><span class="box">${icon('check', '')}</span>${esc(x.nombre.replace(/\s*\(.*\)$/, ''))}<small>${money(x.precio)}${x.unidad === 'dia' ? '/día' : ''}</small></button>`).join('');
+    const s = sv();
+    const cat = s.categoria;
+    $('#cCat').hidden = cats.length < 2;
+    $('#cCat').innerHTML = cats.map((c) => `<button type="button" aria-pressed="${c === cat}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+    const enCat = web.filter((x) => x.s.categoria === cat);
+    $('#cServ').innerHTML = enCat.map((x) => `<button type="button" aria-pressed="${x.i === calc.s}" data-serv="${x.i}">${esc(x.s.nombre)}</button>`).join('');
+    $('#cServ').hidden = enCat.length < 2 && cats.length > 1;
+    $('#cServ').previousElementSibling.hidden = $('#cServ').hidden;
+    $('#cExtrasWrap').hidden = !extrasWeb.length;
+    $('#cExtras').innerHTML = extrasWeb.map(({ x, i }) => `<button type="button" class="xchip" data-ex="${i}" aria-pressed="false"><span class="box">${icon('check', '')}</span>${esc(x.nombre.replace(/\s*\(.*\)$/, ''))}<small>${money(x.precio)} ${K.COBRO_EXTRA[x.cobro]}</small></button>`).join('');
+    const r = $('#cRange'); r.min = s.cantidadMin; r.max = Math.min(s.cantidadMax, s.cobro === 'cantidad' ? 20 : 30);
     updateCalc();
   }
   function updateCalc() {
-    const r = compute(); if (!r) return;
-    const [u1, u2] = unidad(r.s);
-    $$('#cServ button').forEach((b) => b.setAttribute('aria-pressed', +b.dataset.serv === calc.s));
-    $('#cQtyLbl').textContent = u2.toUpperCase();
+    const s = sv();
+    calc.qty = Math.min(Math.max(calc.qty, s.cantidadMin), s.cantidadMax);
+    const extras = {}; calc.ex.forEach((i) => (extras[i] = ''));
+    const r = K.cotizar(C, { servicio: calc.s, cantidad: calc.qty, perros: Array.from({ length: calc.dogs }, () => ({})), extras, primeraVez: calc.pv });
+    $('#cServTxt').textContent = s.bajada || '';
+    $('#cQtyLbl').textContent = s.unidadPlural.toUpperCase();
     $('#cQty').textContent = calc.qty; $('#cDogs').textContent = calc.dogs;
     const range = $('#cRange'); range.value = Math.min(calc.qty, +range.max);
-    range.style.setProperty('--p', `${((Math.min(calc.qty, 30) - 1) / 29) * 100}%`);
-    range.setAttribute('aria-label', `Cantidad de ${u2}`);
-    $('[data-step="qty"][data-d="-1"]').disabled = calc.qty <= 1;
+    range.style.setProperty('--p', `${((Math.min(calc.qty, +range.max) - +range.min) / Math.max(1, +range.max - +range.min)) * 100}%`);
+    range.setAttribute('aria-label', `Cantidad de ${s.unidadPlural}`);
+    $('[data-step="qty"][data-d="-1"]').disabled = calc.qty <= s.cantidadMin;
+    $('[data-step="qty"][data-d="1"]').disabled = calc.qty >= s.cantidadMax;
     $('[data-step="dogs"][data-d="-1"]').disabled = calc.dogs <= 1;
     $('[data-step="dogs"][data-d="1"]').disabled = calc.dogs >= 6;
-    let det = `${calc.dogs} ${calc.dogs === 1 ? 'perro' : 'perros'} × ${calc.qty} ${calc.qty === 1 ? u1 : u2} × ${money(r.unit)}`;
-    if (r.larga) det += ` · <span class="font-semibold text-[#17784a] dark:text-[#4fca8b]">${pct(r.tier.pct)} menos por estadía larga</span>`;
-    if (r.extras) det += ` · extras ${money(r.extras)}`;
+    $('#cDogsWrap').hidden = !s.porPerro && !extrasWeb.some((e) => /perro/i.test(e.x.cobro));
+
+    // adaptación
+    const showPv = A.activa && s.adaptacion;
+    $('#cPv').hidden = !showPv;
+    $('#cPv').setAttribute('aria-pressed', calc.pv);
+    if (showPv) {
+      const unit = A.fijo > 0 ? A.fijo : Math.round(s.precio * A.pct / 100);
+      $('#cPvTxt').textContent = calc.pv
+        ? `Incluye la ${A.nombre.toLowerCase()} obligatoria: ${money(unit)}${A.porPerro ? ' por perro' : ''}.`
+        : `Ya hizo la ${A.nombre.toLowerCase()}${A.validezDias ? ` (vale hasta ${A.validezDias} días antes del ingreso)` : ''}.`;
+    }
+
+    let det = `${s.porPerro ? `${calc.dogs} ${calc.dogs === 1 ? 'perro' : 'perros'} × ` : ''}${calc.qty} ${unidadTxt(s, calc.qty)} × ${money(s.precio)}`;
+    if (r.tier) det += ` · <span class="font-semibold text-[#17784a] dark:text-[#4fca8b]">${pct(r.tier.pct)} menos desde ${r.tier.desde} ${unidadTxt(s, r.tier.desde)}</span>`;
+    if (r.adaptacion) det += ` · adaptación ${money(r.adaptacion.importe)}`;
+    const ext = r.extras.reduce((a, e) => a + e.importe, 0);
+    if (ext) det += ` · extras ${money(ext)}`;
     $('#cDetail').innerHTML = det;
     $$('#cExtras .xchip').forEach((b) => b.setAttribute('aria-pressed', calc.ex.has(+b.dataset.ex)));
+
     const nudge = $('#cNudge'), falta = r.next ? r.next.desde - calc.qty : 0;
-    if (r.next && falta <= 7) {
-      nudge.innerHTML = `<span>Con <b>${falta} ${falta === 1 ? u1 : u2} más</b> tenés <b class="text-brand">${pct(r.next.pct)} de descuento</b> en ${esc(r.s.nombre.toLowerCase())}.</span><button type="button" class="btn btn-ghost !min-h-[40px] !px-4 text-[.9rem]" data-jump="${r.next.desde}">Sumar</button>`;
+    if (r.next && falta <= 7 && r.next.desde <= s.cantidadMax) {
+      nudge.innerHTML = `<span>Con <b>${falta} ${unidadTxt(s, falta)} más</b> tenés <b class="text-brand">${pct(r.next.pct)} de descuento</b> en ${esc(s.nombre.toLowerCase())}.</span><button type="button" class="btn btn-ghost !min-h-[40px] !px-4 text-[.9rem]" data-jump="${r.next.desde}">Sumar</button>`;
       nudge.classList.replace('hidden', 'flex');
     } else nudge.classList.replace('flex', 'hidden');
 
+    const esp = $('#cEsp'), finde = s.recargoFinde ? `Sábados y domingos +${pct(s.recargoFinde)}` : '';
+    const lst = s.cobro !== 'cantidad' ? [...especiales, finde].filter(Boolean) : [];
+    esp.hidden = !lst.length;
+    if (lst.length) esp.lastElementChild.textContent = `Fechas con recargo: ${lst.join(' · ')}. Se calcula solo al elegir las fechas.`;
+
     const box = $('#cTotals');
-    if (box.children.length !== r.totals.length) {
-      box.innerHTML = r.totals.map((t, i) => `<div class="total" data-i="${i}">
+    if (box.children.length !== r.pagos.length) {
+      box.innerHTML = r.pagos.map((t, i) => `<div class="total" data-i="${i}">
         <span class="flex items-center justify-between gap-2 font-mono text-[.7rem] font-semibold tracking-[.12em] opacity-80"><span>${esc(t.nombre ? t.nombre.toUpperCase() : 'TOTAL')}</span><span class="tag"></span></span>
         <span class="amt" id="cT${i}">${money(t.total)}</span></div>`).join('');
-      box.className = `mt-4 grid gap-3 ${r.totals.length > 1 ? 'sm:grid-cols-2' : ''}`;
+      box.className = `mt-4 grid gap-3 ${r.pagos.length > 1 ? 'sm:grid-cols-2' : ''}`;
     }
-    r.totals.forEach((t, i) => {
+    r.pagos.forEach((t, i) => {
       const el = box.children[i];
-      el.classList.toggle('best', r.totals.length > 1 && t.total === r.best);
-      el.querySelector('.tag').innerHTML = t.d > 0 ? `<span class="rounded-full bg-[#c41d24] px-2 py-0.5 text-[.75rem] font-bold text-white">−${pct(t.d)}</span>` : '';
+      el.classList.toggle('best', r.pagos.length > 1 && t.total === r.best);
+      el.querySelector('.tag').innerHTML = t.pct > 0 ? `<span class="rounded-full bg-[#c41d24] px-2 py-0.5 text-[.75rem] font-bold text-white">−${pct(t.pct)}</span>` : '';
       tween($('#cT' + i), t.total);
     });
     $('#cSenia').hidden = !r.senia;
     tween($('#cSeniaV'), r.senia);
-    $('#cGo').href = `app/#cliente&s=${calc.s}&p=${calc.dogs}${calc.ex.size ? '&e=' + [...calc.ex].join('.') : ''}`;
+
+    const porCantidad = s.cobro === 'cantidad';
+    const go = $('#cGo');
+    go.firstChild.textContent = porCantidad ? (T.calcBotonCantidad || 'Reservar') : (T.calcBoton || 'Elegir fechas y reservar');
+    go.href = `app/#cliente&s=${calc.s}&p=${calc.dogs}${calc.ex.size ? '&e=' + [...calc.ex].join('.') : ''}${porCantidad ? '&q=' + calc.qty : ''}${calc.pv ? '' : '&pv=0'}`;
     if (wa) {
-      const lines = [`¡Hola! Quería consultar por ${r.s.nombre.toLowerCase()}:`,
-        `• ${calc.dogs} ${calc.dogs === 1 ? 'perro' : 'perros'}, ${calc.qty} ${calc.qty === 1 ? u1 : u2}`,
-        ...[...calc.ex].map((i) => `• + ${extrasCfg[i].nombre}`),
-        ...r.totals.map((t) => `• ${t.nombre ? 'Total ' + t.nombre.toLowerCase() : 'Total'}: ${money(t.total)}`),
-        '¿Tenés lugar? Te paso las fechas.'];
+      const lines = [`¡Hola! Quería consultar por ${s.nombre.toLowerCase()}:`,
+        `• ${s.porPerro ? `${calc.dogs} ${calc.dogs === 1 ? 'perro' : 'perros'}, ` : ''}${calc.qty} ${unidadTxt(s, calc.qty)}`,
+        ...(r.adaptacion ? [`• ${r.adaptacion.nombre}`] : []),
+        ...[...calc.ex].map((i) => `• + ${CN.extras[i].nombre}`),
+        ...r.pagos.map((t) => `• ${t.nombre ? 'Total ' + t.nombre.toLowerCase() : 'Total'}: ${money(t.total)}`),
+        porCantidad ? '¿Cuándo podemos arrancar?' : '¿Tenés lugar? Te paso las fechas.'];
       const w = $('#cWa'); w.hidden = false; w.target = '_blank'; w.rel = 'noopener';
       w.href = `https://wa.me/${wa}?text=${encodeURIComponent(lines.join('\n'))}`;
     }
   }
   $('#calc').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.serv != null) calc.s = +b.dataset.serv;
-    else if (b.dataset.step === 'qty') calc.qty = Math.max(1, Math.min(90, calc.qty + +b.dataset.d));
+    if (b.dataset.cat != null) { const x = web.find((w) => w.s.categoria === b.dataset.cat); if (x) pick(x.i); return; }
+    if (b.dataset.serv != null) { pick(+b.dataset.serv); return; }
+    const s = sv();
+    if (b.dataset.step === 'qty') calc.qty = Math.max(s.cantidadMin, Math.min(s.cantidadMax, calc.qty + +b.dataset.d));
     else if (b.dataset.step === 'dogs') calc.dogs = Math.max(1, Math.min(6, calc.dogs + +b.dataset.d));
     else if (b.dataset.ex != null) { const i = +b.dataset.ex; if (calc.ex.has(i)) calc.ex.delete(i); else calc.ex.add(i); }
     else if (b.dataset.jump) calc.qty = +b.dataset.jump;
+    else if (b.id === 'cPv') calc.pv = !calc.pv;
     else return;
     updateCalc();
   });
   $('#cRange').addEventListener('input', (e) => { calc.qty = +e.target.value; updateCalc(); });
   $('#svcGrid').addEventListener('click', (e) => {
     const b = e.target.closest('[data-pick]'); if (!b) return;
-    calc.s = +b.dataset.pick; updateCalc(); goTo('#precios');
+    pick(+b.dataset.pick); goTo('#precios');
   });
-  renderCalc();
+  if (web.length) pick(featured); else $('#precios').hidden = true;
 
   /* ticket de la portada con números reales */
   (function heroTicket() {
-    const s = servicios[Math.max(0, featured)]; if (!s) return;
-    const q = 5, base = (+s.precio || 0) * q;
-    const best = pagos.reduce((m, p) => Math.min(m, base * (1 - (+p.descuento || 0) / 100)), Infinity);
-    const bp = pagos.find((p) => Math.round(base * (1 - (+p.descuento || 0) / 100)) === Math.round(best));
-    $('#tkLine').textContent = `${s.nombre.toUpperCase()} · ${q} ${unidad(s)[1].toUpperCase()}`;
-    $('#tkTotal').textContent = money(best);
+    const s = CN.servicios[featured]; if (!s) return;
+    const q = Math.min(5, s.cantidadMax);
+    const r = K.cotizar(C, { servicio: featured, cantidad: q, primeraVez: false });
+    const bp = r.pagos.find((p) => p.total === r.best);
+    $('#tkLine').textContent = `${s.nombre.toUpperCase()} · ${q} ${unidadTxt(s, q).toUpperCase()}`;
+    $('#tkTotal').textContent = money(r.best);
     if (bp && bp.nombre) $('#tkTotal').previousElementSibling.textContent = `EN ${bp.nombre.toUpperCase()}`;
-    if (C.mostrarPrecios === false) $('#tkTotal').parentElement.hidden = true;
+    if (!precios) $('#tkTotal').parentElement.hidden = true;
   })();
+
+  /* ---------------- disponibilidad ---------------- */
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  let disp = null, dView = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  function mesHtml(y, m) {
+    const today = K.iso(new Date()), lead = (new Date(y, m, 1).getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate();
+    let h = '<span aria-hidden="true"></span>'.repeat(lead);
+    for (let d = 1; d <= days; d++) {
+      const k = K.iso(new Date(y, m, d)), e = K.estadoDia(disp, k);
+      let cls = 'free', lbl = 'hay lugar';
+      if (k < today) { cls = 'past'; lbl = 'pasado'; }
+      else if (e.cerrado) { cls = 'full'; lbl = 'cerrado'; }
+      else if (e.lleno) { cls = 'full'; lbl = 'completo'; }
+      else if (e.libres <= CN.cupos.avisoQuedan) { cls = 'few'; lbl = `quedan ${e.libres}`; }
+      h += `<span class="dday ${cls}${k === today ? ' today' : ''}" role="listitem" aria-label="${d} de ${MESES[m]}: ${lbl}">${d}${cls === 'few' ? `<small>${e.libres}</small>` : ''}</span>`;
+    }
+    return `<div class="dcal"><p class="dcal-t">${MESES[m]} ${y}</p>
+      <div class="dcal-dow" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+      <div class="dcal-grid" role="list" aria-label="Disponibilidad de ${MESES[m]} ${y}">${h}</div></div>`;
+  }
+  function renderDisp() {
+    const y = dView.getFullYear(), m = dView.getMonth();
+    $('#dCals').innerHTML = mesHtml(y, m) + `<div class="hidden lg:block">${mesHtml(m === 11 ? y + 1 : y, (m + 1) % 12)}</div>`;
+    const now = new Date();
+    $('#dPrev').disabled = y === now.getFullYear() && m === now.getMonth();
+  }
+  if (CN.cupos.activo) {
+    if (T.dispTitulo) $('#dTit').textContent = T.dispTitulo;
+    $('#dBaj').textContent = T.dispBajada || 'Trabajamos con cupos reducidos. Mirá qué días quedan lugares.';
+    fetch(`disponibilidad.json?t=${Date.now()}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        disp = Object.assign({ capacidad: CN.cupos.capacidad, ocupados: {}, cerrados: [] }, d || {});
+        if (!disp.capacidad) disp.capacidad = CN.cupos.capacidad;
+        $('#disponibilidad').hidden = false; renderDisp();
+        if (window.ScrollTrigger) window.ScrollTrigger.refresh();
+      })
+      .catch(() => { /* sin datos: la sección queda oculta */ });
+    $('#dPrev').addEventListener('click', () => { dView = new Date(dView.getFullYear(), dView.getMonth() - 1, 1); renderDisp(); });
+    $('#dNext').addEventListener('click', () => { dView = new Date(dView.getFullYear(), dView.getMonth() + 1, 1); renderDisp(); });
+  } else $$('a[href="#disponibilidad"]').forEach((a) => a.parentElement.tagName === 'LI' ? a.parentElement.remove() : a.remove());
+
+  /* ---------------- requisitos obligatorios ---------------- */
+  const RQ = C.requisitos || {};
+  const rqCards = [];
+  const card = (ic, tit, items, extra = '') => `<article class="reveal rounded-[26px] border-[1.5px] border-line bg-surface p-7">
+      <span class="grid h-12 w-12 place-items-center rounded-2xl bg-sky text-brand">${icon(ic, 'h-6 w-6')}</span>
+      <h3 class="mt-5 font-display text-[1.35rem] font-extrabold [font-stretch:108%]">${tit}</h3>
+      ${items.length ? `<ul class="mt-4 grid gap-3">${items.map((x) => `<li class="flex items-start gap-2.5">${icon('check', 'mt-0.5 h-5 w-5 flex-none text-cyan')}<span>${esc(x)}</span></li>`).join('')}</ul>` : ''}${extra}
+    </article>`;
+  if ((RQ.llevar || []).length) rqCards.push(card('paw', 'Es obligatorio traer', RQ.llevar));
+  if ((RQ.vacunas || []).length) rqCards.push(card('shield', 'Vacunas al día', RQ.vacunas));
+  if (A.activa) rqCards.push(card('heart', esc(A.nombre), [], `<p class="mt-4 text-ink-2">${esc(A.texto || 'Obligatoria para todos los perros nuevos, aunque ya hayan ido a otra guardería.')}</p>`));
+  if (rqCards.length) { $('#requisitos').hidden = false; $('#rqGrid').innerHTML = rqCards.join(''); }
 
   /* ---------------- cómo lo cuidamos ---------------- */
   const vIcons = ['users', 'home', 'heart', 'cam', 'star', 'shield'];
@@ -309,7 +439,7 @@
     ball.style.opacity = y > 40 ? 1 : 0;
     ball.style.transform = `translateX(${p * (innerWidth - 13)}px) rotate(${p * 1440}deg)`;
     $('#mobileBar').style.transform = y > innerHeight * .7 && y < h - 380 ? 'translateY(0)' : 'translateY(140%)';
-    const secs = ['servicios', 'como', 'precios', 'cuidado', 'preguntas'];
+    const secs = ['servicios', 'educacion', 'como', 'precios', 'disponibilidad', 'cuidado', 'requisitos', 'preguntas'];
     let cur = '';
     secs.forEach((id) => { const el = document.getElementById(id); if (el && !el.hidden && el.getBoundingClientRect().top < innerHeight * .4) cur = id; });
     $$('.nav-link').forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#' + cur));

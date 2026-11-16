@@ -1,75 +1,16 @@
-/* Inquietos Caninos — recibos y presupuestos (PWA sin servidor) */
+/* Inquietos Caninos — presupuestos, recibos, agenda y ajustes (PWA sin servidor) */
 'use strict';
-
-/* ======================= CONFIGURACIÓN POR DEFECTO ======================= */
-const DEFAULT_CFG = {
-  negocio: 'Inquietos Caninos',
-  responsable: '',
-  telefono: '',
-  redes: '',
-  direccion: '',
-  alias: '',
-  cbu: '',
-  titular: '',
-  banco: '',
-  horaIn: '09:00',
-  horaOut: '18:00',
-  servicios: [
-    { nombre: 'Estadía', precio: 70000, unidad: 'dia' },
-    { nombre: 'Guardería de día', precio: 25000, unidad: 'dia' },
-    { nombre: 'Paseo', precio: 8000, unidad: 'dia' },
-  ],
-  tamanos: [],            // ej: { nombre: 'Grande', recargo: 10 } — solo si cobrás distinto por tamaño
-  extras: [
-    { nombre: 'Baño', precio: 15000, unidad: 'unico' },
-    { nombre: 'Administración de medicación', precio: 2000, unidad: 'dia' },
-    { nombre: 'Traslado (búsqueda y entrega)', precio: 10000, unidad: 'unico' },
-  ],
-  pagos: [
-    { nombre: 'Transferencia', descuento: 0 },
-    { nombre: 'Efectivo', descuento: 10 },
-  ],
-  descEstadia: [
-    { desde: 15, pct: 5 },
-    { desde: 30, pct: 10 },
-  ],
-  descPerroAdicional: 0,
-  seniaPct: 30,
-  condiciones: [
-    'Los días festivos (Noche buena, Navidad/ Fin de año y Año Nuevo) la tarifa es doble.',
-    'La reserva de la estadía se realiza con una seña del 30%.',
-    'El valor de la estadía puede modificarse al momento del ingreso, de acuerdo con las actualizaciones por inflación.',
-    'Al ingresar tu/s cuatro patas, se descontará del total vigente el importe abonado previamente como reserva.',
-    'En caso de querer realizar la reserva, los datos para la transferencia figuran en este presupuesto.',
-  ].join('\n'),
-  validez: 7,
-  nextNumero: 1,
-};
-
-/* Datos del negocio desde config.js (archivo compartido con la página web) */
-(function aplicarConfig(S) {
-  if (!S) return;
-  const set = (k, v) => { if (v !== undefined && v !== null && v !== '') DEFAULT_CFG[k] = v; };
-  ['negocio', 'responsable', 'alias', 'cbu', 'titular', 'banco', 'horaIn', 'horaOut',
-    'extras', 'pagos', 'descEstadia', 'descPerroAdicional', 'seniaPct', 'validez'].forEach((k) => set(k, S[k]));
-  set('telefono', S.whatsapp);
-  set('redes', S.instagram && '@' + String(S.instagram).replace(/^@/, ''));
-  set('direccion', S.direccion || S.zona);
-  if (Array.isArray(S.servicios)) set('servicios', S.servicios.map((x) => ({ nombre: x.nombre, precio: x.precio, unidad: x.unidad || 'dia' })));
-  set('condiciones', Array.isArray(S.condiciones) ? S.condiciones.join('\n') : S.condiciones);
-})(window.INQUIETOS);
-
-const LS_CFG = 'ic.cfg', LS_HIST = 'ic.hist', LS_DRAFT = 'ic.draft';
 
 /* ======================= UTILIDADES ======================= */
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-const clone = (o) => JSON.parse(JSON.stringify(o));
+const clone = (o) => JSON.parse(JSON.stringify(o ?? null));
 const num = (v) => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isFinite(n) ? n : 0; };
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nf = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
 const money = (n) => (n < 0 ? '-$' : '$') + nf.format(Math.abs(Math.round(n)));
 const pctTxt = (p) => String(+(+p).toFixed(2)).replace('.', ',') + '%';
+const clampN = (v, a, b) => Math.min(b, Math.max(a, v));
 
 function lsGet(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } }
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sin espacio / privado */ } }
@@ -78,10 +19,16 @@ function parseDate(s) { if (!s) return null; const [y, m, d] = s.split('-').map(
 function fmtDate(s) { const d = parseDate(s); return d ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}` : ''; }
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 function todayStr() { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; }
+const getPath = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
+function setPath(o, p, v) {
+  const ks = p.split('.'); let a = o;
+  ks.slice(0, -1).forEach((k) => { if (typeof a[k] !== 'object' || a[k] === null) a[k] = {}; a = a[k]; });
+  a[ks[ks.length - 1]] = v;
+}
 
 function toast(msg) {
   const t = $('#toast'); t.textContent = msg; t.hidden = false;
-  clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 2400);
+  clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 3200);
 }
 
 function waNumber(raw) {
@@ -95,7 +42,7 @@ function waNumber(raw) {
 }
 const waLink = (phone, text) => `https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(text)}`;
 
-/* base64url + compresión para el link del cliente */
+/* base64url + compresión para el link del tutor */
 function b64u(bytes) {
   let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -124,14 +71,50 @@ async function decodePayload(str) {
   return JSON.parse(new TextDecoder().decode(data));
 }
 
-/* ======================= ESTADO ======================= */
+/* ======================= CONFIGURACIÓN ======================= */
+/* config.js (window.INQUIETOS) es la fuente: lo comparten la web y la app. */
+const SITE = window.INQUIETOS || {};
+function fromSite(S) {
+  const c = clone(S) || {};
+  c.negocio = c.negocio || 'Inquietos Caninos';
+  c.telefono = S.whatsapp || '';
+  c.redes = S.instagram ? '@' + String(S.instagram).replace(/^@/, '') : '';
+  delete c.whatsapp; delete c.instagram;
+  c.condiciones = Array.isArray(S.condiciones) ? S.condiciones.join('\n') : (S.condiciones || '');
+  c.aviso = typeof S.aviso === 'string' ? { texto: S.aviso } : Object.assign({ texto: '' }, S.aviso);
+  c.textos = Object.assign({}, S.textos);
+  c.educador = Object.assign({ titulo: '', texto: '', puntos: [] }, S.educador);
+  c.requisitos = Object.assign({ llevar: [], vacunas: [] }, S.requisitos);
+  c.cupos = Object.assign({ activo: true, capacidad: 5, avisoQuedan: 2 }, S.cupos);
+  c.adaptacion = Object.assign({ activa: true, nombre: 'Visita de adaptación', pct: 50, fijo: 0, porPerro: true, validezDias: 30, texto: '' }, S.adaptacion);
+  ['servicios', 'extras', 'pagos', 'tamanos', 'fechasEspeciales', 'preguntas', 'forma', 'fotos', 'opiniones'].forEach((k) => { if (!Array.isArray(c[k])) c[k] = []; });
+  if (!c.servicios.length) c.servicios = [{ nombre: 'Estadía', precio: 0, cobro: 'dia', unidad: 'día', unidadPlural: 'días' }];
+  if (c.mostrarPrecios === undefined) c.mostrarPrecios = true;
+  c.horaIn = c.horaIn || '09:00'; c.horaOut = c.horaOut || '18:00';
+  c.nextNumero = 1;
+  return c;
+}
+function toSite(c) {
+  const S = clone(c);
+  S.whatsapp = waNumber(c.telefono);
+  S.instagram = String(c.redes || '').replace(/^@/, '').trim();
+  delete S.telefono; delete S.redes; delete S.nextNumero;
+  S.condiciones = String(c.condiciones || '').split('\n').map((x) => x.trim()).filter(Boolean);
+  if (SITE.aviso && SITE.aviso.link && S.aviso && !S.aviso.link) S.aviso.link = SITE.aviso.link;
+  return S;
+}
+const DEFAULT_CFG = fromSite(SITE);
+
+const LS_CFG = 'ic.cfg', LS_HIST = 'ic.hist', LS_DRAFT = 'ic.draft', LS_BASE = 'ic.cfgBase';
+const LS_AG = 'ic.agenda', LS_GH = 'ic.gh', LS_PUB = 'ic.pub';
+
 /* Ajustes guardados: si un valor no se tocó desde la app, se toma el de config.js
-   (así, editar config.js actualiza la app sin pisar lo que se cambió a mano). */
-const LS_BASE = 'ic.cfgBase';
+   (así un cambio publicado en la web llega a la app sin pisar lo que se cambió a mano). */
 function loadCfg() {
   const saved = lsGet(LS_CFG, null), base = lsGet(LS_BASE, {});
   const out = clone(DEFAULT_CFG);
   if (saved) for (const k of Object.keys(saved)) {
+    if (k === 'whatsapp' || k === 'instagram') continue;
     const untouched = k in base && JSON.stringify(saved[k]) === JSON.stringify(base[k]);
     if (!untouched || k === 'nextNumero') out[k] = saved[k];
   }
@@ -139,8 +122,9 @@ function loadCfg() {
 }
 let cfg = loadCfg();
 let clientMode = false;
-let currentId = null;     // id del historial del recibo en edición
+let currentId = null;     // id del historial del presupuesto en edición
 let lastResult = null;    // { blob, url, file, data }
+let DISP = null;          // disponibilidad: { capacidad, ocupados, cerrados }
 
 function blankState() {
   return {
@@ -149,79 +133,50 @@ function blankState() {
     observaciones: '',
     servicio: 0, fechaIn: '', horaIn: cfg.horaIn, fechaOut: '', horaOut: cfg.horaOut,
     excluidos: [],        // días dentro del rango en que el perro no viene (YYYY-MM-DD)
-    extras: {},           // idx -> cantidad (string, '' = automático)
+    cantidad: '',         // para servicios que se cobran por cantidad (clases, sesiones)
+    primeraVez: true,     // incluye la visita de adaptación
+    extras: {},           // índice -> cantidad ('' = automático)
     pago: -1,             // -1 = mostrar todas las formas de pago
     descExtra: '', pagado: '',
   };
 }
 let st = blankState();
 
-/* ======================= CÁLCULO ======================= */
-function countQty(c, s) {
-  const serv = c.servicios[s.servicio] || c.servicios[0] || { unidad: 'dia' };
-  const a = parseDate(s.fechaIn), b = parseDate(s.fechaOut) || a;
-  const exc = s.excluidos || [];
-  let qty = 0;
-  if (a && b >= a) {
-    if (serv.unidad === 'noche') qty = Math.round((b - a) / 864e5);
-    else for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) if (!exc.includes(iso(d))) qty++;
-  }
-  return { qty, unidad: serv.unidad };
+/* ======================= CÁLCULO (motor compartido) ======================= */
+const pedidoDe = (s, admin = !clientMode) => ({
+  servicio: s.servicio, fechaIn: s.fechaIn, fechaOut: s.fechaOut, excluidos: s.excluidos, cantidad: s.cantidad,
+  perros: s.dogs, extras: s.extras, primeraVez: s.primeraVez !== false, pago: s.pago,
+  descExtra: admin ? s.descExtra : 0, pagado: admin ? s.pagado : 0,
+});
+const calc = (c, s, admin) => Cotizador.cotizar(c, pedidoDe(s, admin));
+const servDe = (c, i) => Cotizador.servicio((c.servicios || [])[i] || (c.servicios || [])[0], i);
+const servActual = () => servDe(cfg, st.servicio);
+const nombresPerros = (s) => (s.dogs || []).map((d, i) => String(d.nombre || '').trim() || `Perro ${i + 1}`);
+
+/* ======================= DISPONIBILIDAD ======================= */
+const agGet = () => Object.assign({ extra: {}, cerrados: [] }, lsGet(LS_AG, {}));
+function dispLocal() {
+  const ocupados = Cotizador.ocupacion(lsGet(LS_HIST, []));
+  const ag = agGet(), hoy = iso(new Date());
+  Object.entries(ag.extra).forEach(([k, n]) => { if (num(n)) ocupados[k] = (ocupados[k] || 0) + num(n); });
+  Object.keys(ocupados).forEach((k) => { if (k < hoy || !ocupados[k]) delete ocupados[k]; });
+  const sorted = {}; Object.keys(ocupados).sort().forEach((k) => (sorted[k] = ocupados[k]));
+  return { capacidad: Math.max(1, Math.round(num(cfg.cupos.capacidad)) || 1), ocupados: sorted, cerrados: (ag.cerrados || []).filter((k) => k >= hoy).sort() };
 }
-
-function calc(c, s) {
-  const serv = c.servicios[s.servicio] || c.servicios[0] || { nombre: 'Servicio', precio: 0, unidad: 'dia' };
-  const { qty, unidad } = countQty(c, s);
-  const uSing = unidad === 'noche' ? 'noche' : 'día';
-  const uPlur = unidad === 'noche' ? 'noches' : 'días';
-  const qtyTxt = (q) => `${q} ${q === 1 ? uSing : uPlur}`;
-
-  const dogs = s.dogs.map((d, i) => {
-    const tam = c.tamanos[d.tamano];
-    const rec = tam ? num(tam.recargo) : 0;
-    const unit = Math.round(num(serv.precio) * (1 + rec / 100));
-    let importe = unit * qty;
-    const notas = [];
-    if (rec) notas.push(`${rec > 0 ? '+' : ''}${pctTxt(rec)} ${tam.nombre.toLowerCase()}`);
-    const dp = num(c.descPerroAdicional);
-    if (i > 0 && dp) { importe = Math.round(importe * (1 - dp / 100)); notas.push(`-${pctTxt(dp)} perro adicional`); }
-    return { nombre: (d.nombre || `Perro ${i + 1}`).trim(), detalle: `${qtyTxt(qty)} × ${money(unit)}`, notas: notas.join(' · '), importe };
-  });
-  const servicioTotal = dogs.reduce((a, d) => a + d.importe, 0);
-
-  const extras = [];
-  c.extras.forEach((e, i) => {
-    if (!(i in s.extras)) return;
-    const raw = String(s.extras[i] ?? '').trim();
-    const q = raw !== '' ? num(raw) : (e.unidad === 'dia' ? qty : 1);
-    const importe = Math.round(num(e.precio) * q);
-    extras.push({ nombre: e.nombre, detalle: `${q} × ${money(num(e.precio))}`, importe });
-  });
-  const extrasTotal = extras.reduce((a, e) => a + e.importe, 0);
-  const subtotal = servicioTotal + extrasTotal;
-
-  const descuentos = [];
-  const tier = [...c.descEstadia].filter((t) => num(t.desde) > 0 && qty >= num(t.desde)).sort((x, y) => num(y.desde) - num(x.desde))[0];
-  if (tier && num(tier.pct)) {
-    descuentos.push({ nombre: `Descuento estadía larga (${pctTxt(tier.pct)})`, importe: Math.round(servicioTotal * num(tier.pct) / 100) });
-  }
-  const dx = clientMode ? 0 : num(s.descExtra);
-  if (dx) {
-    const baseDx = subtotal - descuentos.reduce((a, d) => a + d.importe, 0);
-    descuentos.push({ nombre: `Descuento especial (${pctTxt(dx)})`, importe: Math.round(baseDx * dx / 100) });
-  }
-  const base = subtotal - descuentos.reduce((a, d) => a + d.importe, 0);
-
-  let pagos = c.pagos.map((p) => ({ nombre: p.nombre, pct: num(p.descuento), total: Math.round(base * (1 - num(p.descuento) / 100)) }));
-  if (s.pago >= 0 && pagos[s.pago]) pagos = [pagos[s.pago]];
-  if (!pagos.length) pagos = [{ nombre: '', pct: 0, total: base }];
-
-  const maxTotal = Math.max(...pagos.map((p) => p.total));
-  const seniaPct = num(c.seniaPct);
-  const senia = Math.round(maxTotal * seniaPct / 100);
-  const pagado = clientMode ? 0 : num(s.pagado);
-
-  return { serv, qty, unidad, uPlur, dogs, extras, servicioTotal, extrasTotal, subtotal, descuentos, base, pagos, seniaPct, senia, pagado };
+const cuposActivos = () => !!(cfg.cupos && cfg.cupos.activo !== false && DISP);
+const usaCupos = (s) => cuposActivos() && s.ocupaCupo && s.cobro !== 'cantidad';
+function estadoDia(k) { return DISP ? Cotizador.estadoDia(DISP, k) : null; }
+/* días de presencia (para cupos): de ingreso a retiro, sin los días excluidos */
+function diasPresencia(s, serv) {
+  const a = parseDate(s.fechaIn); if (!a) return [];
+  const b = parseDate(s.fechaOut) || a, out = [];
+  for (const d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) { const k = iso(d); if (serv.cobro === 'noche' || !(s.excluidos || []).includes(k)) out.push(k); }
+  return out;
+}
+function diasLlenos() {
+  const s = servActual();
+  if (!usaCupos(s)) return [];
+  return diasPresencia(st, s).filter((k) => { const e = estadoDia(k); return e && e.lleno; });
 }
 
 /* ======================= FORMULARIO ======================= */
@@ -238,10 +193,18 @@ function ask(msg, yes = 'Sí') {
 }
 
 function renderForm() {
-  const selS = $('#selServicio');
-  selS.innerHTML = cfg.servicios.map((s, i) => `<option value="${i}">${esc(s.nombre)} · ${money(num(s.precio))} por ${s.unidad === 'noche' ? 'noche' : 'día'}</option>`).join('');
-  if (st.servicio >= cfg.servicios.length) st.servicio = 0;
-  selS.value = st.servicio;
+  // servicios agrupados por categoría
+  if (!cfg.servicios[st.servicio]) st.servicio = 0;
+  const cats = [];
+  cfg.servicios.forEach((raw, i) => {
+    const s = Cotizador.servicio(raw, i);
+    if (clientMode && !s.web && i !== st.servicio) return;
+    let g = cats.find((c) => c.n === s.categoria); if (!g) cats.push(g = { n: s.categoria, items: [] });
+    g.items.push([i, s]);
+  });
+  $('#selServicio').innerHTML = cats.map((g) => (cats.length > 1 ? `<optgroup label="${esc(g.n)}">` : '')
+    + g.items.map(([i, s]) => `<option value="${i}">${esc(s.nombre)} · ${money(s.precio)} por ${esc(s.unidad)}</option>`).join('')
+    + (cats.length > 1 ? '</optgroup>' : '')).join('');
 
   $('#dogsList').innerHTML = st.dogs.map((d, i) => `
     <div class="dog">
@@ -254,21 +217,25 @@ function renderForm() {
       ${cfg.tamanos.length ? `<div class="field"><label for="dog${i}-t">Tamaño</label><select id="dog${i}-t" data-dog="${i}" data-k="tamano">${cfg.tamanos.map((t, j) => `<option value="${j}" ${+d.tamano === j ? 'selected' : ''}>${esc(t.nombre)}${num(t.recargo) ? ` (+${pctTxt(t.recargo)})` : ''}</option>`).join('')}</select></div>` : ''}
     </div>`).join('');
 
-
-  $('#extrasList').innerHTML = cfg.extras.map((e, i) => `
+  const extrasN = cfg.extras.map((x) => Cotizador.extra(x));
+  $('#extrasList').innerHTML = extrasN.map((e, i) => (clientMode && !e.web) ? '' : `
     <label class="extra" for="ex${i}">
       <input type="checkbox" id="ex${i}" data-extra="${i}" ${i in st.extras ? 'checked' : ''}>
-      <span class="name">${esc(e.nombre)}<span class="price">${money(num(e.precio))} ${e.unidad === 'dia' ? 'por día' : 'una vez'}</span></span>
+      <span class="name">${esc(e.nombre)}<span class="price">${money(e.precio)} ${Cotizador.COBRO_EXTRA[e.cobro]}</span></span>
       <input type="number" min="0" step="1" inputmode="numeric" data-extraq="${i}" placeholder="auto" value="${esc(st.extras[i] ?? '')}" ${i in st.extras ? '' : 'disabled'} aria-label="Cantidad de ${esc(e.nombre)}">
     </label>`).join('');
-  $('#noExtras').hidden = cfg.extras.length > 0;
-  $('#extrasList').hidden = !cfg.extras.length;
+  const anyExtra = extrasN.some((e) => !clientMode || e.web);
+  $('#noExtras').hidden = anyExtra;
+  $('#extrasList').hidden = !anyExtra;
 
   if (st.pago >= cfg.pagos.length) st.pago = -1;
   const opts = [{ i: -1, n: cfg.pagos.length > 1 ? 'Todas' : 'Total', d: 0 }, ...cfg.pagos.map((p, i) => ({ i, n: p.nombre, d: num(p.descuento) }))];
   $('#pagos').innerHTML = opts.map((o) => `<button type="button" class="${st.pago === o.i ? 'on' : ''}" data-pago="${o.i}">${esc(o.n)}${o.d ? ` <small>${o.d > 0 ? '−' : '+'}${pctTxt(Math.abs(o.d))}</small>` : ''}</button>`).join('');
 
-  for (const el of form.elements) if (el.name && el.name in st && typeof st[el.name] !== 'object') el.value = st[el.name];
+  for (const el of form.elements) {
+    if (!el.name || !(el.name in st) || typeof st[el.name] === 'object') continue;
+    if (el.type === 'checkbox') el.checked = st[el.name] !== false; else el.value = st[el.name];
+  }
   $('#adminPayFields').hidden = clientMode;
   updateSummary();
 }
@@ -276,15 +243,25 @@ function renderForm() {
 /* ---------- calendario: tocás ingreso y retiro ---------- */
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+const DIAS_LARGOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 let calView = null;
 const shortDate = (str) => { const d = parseDate(str); return `${DIAS_CORTOS[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`; };
+
+function dayAvailClass(k, s) {
+  if (!usaCupos(s)) return { cls: '', label: '' };
+  const e = estadoDia(k); if (!e) return { cls: '', label: '' };
+  if (e.cerrado) return { cls: 'full', label: ', cerrado' };
+  if (e.lleno) return { cls: 'full', label: ', completo' };
+  if (e.libres <= num(cfg.cupos.avisoQuedan)) return { cls: 'few', label: `, quedan ${e.libres}` };
+  return { cls: '', label: '' };
+}
 
 function renderCal() {
   if (!calView) { const base = parseDate(st.fechaIn) || new Date(); calView = new Date(base.getFullYear(), base.getMonth(), 1); }
   const y = calView.getFullYear(), m = calView.getMonth();
   $('#calTitle').textContent = `${MESES[m]} ${y}`;
   const A = st.fechaIn, B = st.fechaOut || '', exc = st.excluidos || [];
-  const today = iso(new Date());
+  const today = iso(new Date()), s = servActual();
   const lead = (new Date(y, m, 1).getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate();
   let h = '<span></span>'.repeat(lead);
   for (let d = 1; d <= days; d++) {
@@ -297,58 +274,95 @@ function renderCal() {
     if (k === B || (k === A && !B)) cls.push('end');
     if (inR && k !== A && k !== B) cls.push(exc.includes(k) ? 'off' : 'mid');
     if (inR && exc.includes(k) && (k === A || k === B)) cls.push('off');
-    h += `<button type="button" class="${cls.join(' ')}" data-day="${k}" aria-pressed="${!!(inR || k === A)}" aria-label="${d} de ${MESES[m]}">${d}</button>`;
+    const av = k >= today ? dayAvailClass(k, s) : { cls: '', label: '' };
+    if (av.cls) cls.push(av.cls);
+    const blocked = clientMode && av.cls === 'full' && !inR && k !== A;
+    h += `<button type="button" class="${cls.join(' ')}" data-day="${k}" aria-pressed="${!!(inR || k === A)}" ${blocked ? 'aria-disabled="true"' : ''} aria-label="${d} de ${MESES[m]}${av.label}">${d}</button>`;
   }
   $('#calGrid').innerHTML = h;
+  $('#calLegend').hidden = !usaCupos(s);
 
-  const unidad = countQty(cfg, st).unidad, q = countQty(cfg, st).qty;
-  const word = unidad === 'noche' ? (q === 1 ? 'noche' : 'noches') : (q === 1 ? 'día' : 'días');
+  const r = calc(cfg, st), q = r.qty;
+  const word = q === 1 ? r.unidad : r.unidadPlural;
   let hint;
   if (!A) hint = 'Tocá el día que lo traés.';
   else if (!B) hint = 'Ahora tocá el día que lo retirás. Si es un solo día, tocá el mismo.';
   else {
-    hint = `<b>${q} ${word}</b>, ${A === B ? 'el ' + shortDate(A) : `del ${shortDate(A)} al ${shortDate(B)}`}.`;
-    if (unidad !== 'noche' && A !== B) hint += ' Si algún día no viene, tocalo para sacarlo.';
+    hint = `<b>${q} ${esc(word)}</b>, ${A === B ? 'el ' + shortDate(A) : `del ${shortDate(A)} al ${shortDate(B)}`}.`;
+    if (s.cobro === 'dia' && A !== B) hint += ' Si algún día no viene, tocalo para sacarlo.';
+    const llenos = diasLlenos();
+    if (llenos.length) hint += ` <span class="warn">${clientMode ? 'Sin lugar' : 'Completo'}: ${llenos.map(shortDate).join(', ')}.</span>`;
+    if (r.recargos.length) hint += ` <span class="note">Incluye ${r.recargos.map((x) => esc(x.nombre.toLowerCase())).join(' y ')}.</span>`;
   }
   $('#calHint').innerHTML = hint;
   let hasWeekend = false;
-  if (A && B && unidad !== 'noche') for (let d = parseDate(A); iso(d) <= B; d.setDate(d.getDate() + 1)) if ([0, 6].includes(d.getDay()) && !exc.includes(iso(d))) { hasWeekend = true; break; }
+  if (A && B && s.cobro === 'dia') for (let d = parseDate(A); iso(d) <= B; d.setDate(d.getDate() + 1)) if ([0, 6].includes(d.getDay()) && !exc.includes(iso(d))) { hasWeekend = true; break; }
   $('#calWeekdays').hidden = !hasWeekend;
   $('#calClear').hidden = !A;
   $('#calTools').hidden = !A;
 }
 
 function pickDay(k) {
-  const A = st.fechaIn, B = st.fechaOut, unidad = countQty(cfg, st).unidad;
-  if (A && B && k > A && k < B && unidad !== 'noche') {
+  const A = st.fechaIn, B = st.fechaOut, s = servActual();
+  if (A && B && k > A && k < B && s.cobro === 'dia') {
     const e = st.excluidos || []; st.excluidos = e.includes(k) ? e.filter((x) => x !== k) : [...e, k];
-  } else if (A && !B) {
-    if (k < A) st.fechaIn = k; else st.fechaOut = k;
-  } else { st.fechaIn = k; st.fechaOut = ''; st.excluidos = []; }
+    return;
+  }
+  if (clientMode && usaCupos(s)) {
+    const e = estadoDia(k);
+    if (e && e.lleno) { toast(`El ${shortDate(k)} está completo. Elegí otro día o escribinos.`); return; }
+  }
+  if (A && !B) { if (k < A) st.fechaIn = k; else st.fechaOut = k; }
+  else { st.fechaIn = k; st.fechaOut = ''; st.excluidos = []; }
 }
 
 function updateSummary() {
-  renderCal();
-  const q = countQty(cfg, st);
-  const unit = q.unidad === 'noche' ? ['noche', 'noches'] : ['día', 'días'];
+  const s = servActual();
+  const porCantidad = s.cobro === 'cantidad';
+  $('#qtyField').hidden = !porCantidad;
+  $('#dateBlock').hidden = porCantidad;
+  $('#stepServLbl').textContent = porCantidad ? 'Servicio y cantidad' : 'Servicio y fechas';
+  if (porCantidad) {
+    const inp = $('#f-cant');
+    inp.min = s.cantidadMin; inp.max = s.cantidadMax;
+    if (String(st.cantidad).trim() === '') st.cantidad = s.cantidadDefecto;
+    if (document.activeElement !== inp) inp.value = st.cantidad;
+    $('#qtyLbl').textContent = `Cantidad de ${s.unidadPlural}`;
+    const tiers = (s.descCantidad || []).slice().sort((a, b) => a.desde - b.desde);
+    $('#qtyHint').textContent = tiers.length ? 'Descuentos: ' + tiers.map((t) => `${pctTxt(t.pct)} desde ${t.desde} ${t.desde === 1 ? s.unidad : s.unidadPlural}`).join(' · ') : '';
+  } else renderCal();
+
+  const A = Cotizador.config(cfg).adaptacion;
+  const showPv = A.activa && s.adaptacion;
+  $('#pvField').hidden = !showPv;
+  if (showPv) {
+    const unit = A.fijo > 0 ? A.fijo : Math.round(s.precio * A.pct / 100);
+    $('#pvTitle').textContent = (cfg.textos && cfg.textos.primeraVez) || 'Es su primera vez con nosotros';
+    $('#pvTxt').textContent = `Incluye la ${A.nombre.toLowerCase()} obligatoria: ${money(unit)}${A.porPerro && st.dogs.length > 1 ? ' por perro' : ''}. Desmarcalo si ya la hizo${A.validezDias ? ` (vale hasta ${A.validezDias} días antes del ingreso)` : ''}.`;
+  }
+
   const traslado = cfg.extras.some((e, i) => i in st.extras && /traslad|busc|retir|entreg/i.test(e.nombre));
   $('#dirField').hidden = !(traslado || st.dirCliente);
 
   const r = calc(cfg, st);
   const best = Math.min(...r.pagos.map((p) => p.total));
+  const row = (k, sub, v, cls = '') => `<div class="srow ${cls}"><span class="k">${esc(k)}${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${v}</span></div>`;
   let h = '';
-  r.dogs.forEach((d) => (h += `<div class="srow"><span class="k">${esc(d.nombre)}<small>${esc(d.detalle)}${d.notas ? ' · ' + esc(d.notas) : ''}</small></span><span class="v">${money(d.importe)}</span></div>`));
-  r.extras.forEach((e) => (h += `<div class="srow"><span class="k">${esc(e.nombre)}<small>${esc(e.detalle)}</small></span><span class="v">${money(e.importe)}</span></div>`));
-  if (r.extras.length || r.descuentos.length || r.dogs.length > 1) h += `<div class="srow dim"><span class="k">Subtotal</span><span class="v">${money(r.subtotal)}</span></div>`;
-  r.descuentos.forEach((d) => (h += `<div class="srow disc"><span class="k">${esc(d.nombre)}</span><span class="v">−${money(d.importe)}</span></div>`));
+  r.dogs.forEach((d) => (h += row(d.nombre, d.detalle + (d.notas ? ' · ' + d.notas : ''), money(d.importe))));
+  r.recargos.forEach((x) => (h += row(x.nombre, x.detalle, money(x.importe), 'rec')));
+  if (r.adaptacion) h += row(r.adaptacion.nombre, r.adaptacion.detalle, money(r.adaptacion.importe));
+  r.extras.forEach((e) => (h += row(e.nombre, e.detalle, money(e.importe))));
+  if (r.extras.length || r.descuentos.length || r.dogs.length > 1 || r.recargos.length || r.adaptacion) h += row('Subtotal', '', money(r.subtotal), 'dim');
+  r.descuentos.forEach((d) => (h += row(d.nombre, '', '−' + money(d.importe), 'disc')));
   r.pagos.forEach((p) => (h += `<div class="srow tot ${r.pagos.length > 1 && p.total === best ? 'best' : ''}"><span class="k">${p.nombre ? esc(p.nombre) : 'Total'}${p.pct > 0 ? `<span class="tag-pct">−${pctTxt(p.pct)}</span>` : ''}</span><span class="v">${money(p.total)}</span></div>`));
-  if (r.pagado) h += `<div class="srow dim"><span class="k">Seña cobrada</span><span class="v">${money(r.pagado)}</span></div>`;
-  else if (r.seniaPct) h += `<div class="srow dim"><span class="k">Reserva ${pctTxt(r.seniaPct)}</span><span class="v">${money(r.senia)}</span></div>`;
-  $('#summary').innerHTML = r.qty ? h : '<p class="empty">Cuando cargues las fechas vas a ver acá el detalle y el total.</p>';
+  if (r.pagado) h += row('Seña cobrada', '', money(r.pagado), 'dim');
+  else if (r.seniaPct) h += row(`Reserva ${pctTxt(r.seniaPct)}`, '', money(r.senia), 'dim');
+  if (r.next && !porCantidad && r.next.desde - r.qty <= 7) h += `<p class="nudge">Con ${r.next.desde - r.qty} ${r.next.desde - r.qty === 1 ? r.unidad : r.unidadPlural} más tiene ${pctTxt(r.next.pct)} de descuento.</p>`;
+  $('#summary').innerHTML = r.qty ? h : `<p class="empty">${porCantidad ? 'Elegí la cantidad para ver el detalle y el total.' : 'Cuando elijas las fechas vas a ver acá el detalle y el total.'}</p>`;
 
   const bp = r.pagos.find((p) => p.total === best);
   $('#barTotal').textContent = money(best);
-  $('#barTotalLabel').textContent = r.qty ? `${r.pagos.length > 1 && bp.nombre ? 'En ' + bp.nombre.toLowerCase() : 'Total'} · ${r.qty} ${r.qty === 1 ? unit[0] : unit[1]}` : 'Cargá las fechas';
+  $('#barTotalLabel').textContent = r.qty ? `${r.pagos.length > 1 && bp.nombre ? 'En ' + bp.nombre.toLowerCase() : 'Total'} · ${r.qty} ${r.qty === 1 ? r.unidad : r.unidadPlural}` : (porCantidad ? 'Elegí la cantidad' : 'Elegí las fechas');
   if (!clientMode) $('#btnGenerar').textContent = num(st.pagado) > 0 ? 'Crear recibo' : 'Crear presupuesto';
   if (!clientMode) lsSet(LS_DRAFT, { st, currentId });
 }
@@ -365,9 +379,14 @@ form.addEventListener('input', (e) => {
   } else if (t.dataset.extraq != null) {
     st.extras[+t.dataset.extraq] = t.value;
   } else if (t.name && t.name in st) {
-    st[t.name] = t.name === 'servicio' ? +t.value : t.value;
+    if (t.type === 'checkbox') st[t.name] = t.checked;
+    else if (t.name === 'servicio') { st.servicio = +t.value; st.cantidad = ''; }
+    else st[t.name] = t.value;
   }
   updateSummary();
+});
+$('#f-cant').addEventListener('change', () => {
+  const s = servActual(); st.cantidad = clampN(Math.round(num(st.cantidad)) || s.cantidadDefecto, s.cantidadMin, s.cantidadMax); updateSummary();
 });
 
 form.addEventListener('click', async (e) => {
@@ -375,6 +394,10 @@ form.addEventListener('click', async (e) => {
   if (b.dataset.day) {
     pickDay(b.dataset.day);
     if ($('#cal').getAttribute('aria-invalid')) { $('#cal').removeAttribute('aria-invalid'); const er = $('#err-cal'); if (er) er.remove(); }
+    updateSummary();
+  } else if (b.dataset.qd) {
+    const s = servActual();
+    st.cantidad = clampN((Math.round(num(st.cantidad)) || s.cantidadDefecto) + +b.dataset.qd, s.cantidadMin, s.cantidadMax);
     updateSummary();
   } else if (b.id === 'calPrev' || b.id === 'calNext') {
     calView = new Date(calView.getFullYear(), calView.getMonth() + (b.id === 'calNext' ? 1 : -1), 1); renderCal();
@@ -393,7 +416,7 @@ form.addEventListener('click', async (e) => {
     st.dogs.push({ nombre: '', raza: '', edad: '', tamano: 0 }); renderForm();
     $(`#dog${st.dogs.length - 1}-n`).focus();
   } else if (b.id === 'btnReset') {
-    if (!(await ask('¿Borrar lo cargado y empezar un recibo nuevo?', 'Empezar nuevo'))) return;
+    if (!(await ask('¿Borrar lo cargado y empezar un presupuesto nuevo?', 'Empezar nuevo'))) return;
     st = blankState(); currentId = null; calView = null; renderForm(); window.scrollTo(0, 0);
   }
 });
@@ -401,10 +424,19 @@ form.addEventListener('click', async (e) => {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   clearErrors();
-  if (!st.cliente.trim()) return focusErr('#f-cliente', 'Falta el nombre del dueño o dueña.');
+  if (!st.cliente.trim()) return focusErr('#f-cliente', 'Falta el nombre del tutor o tutora.');
   if (!st.dogs.some((d) => d.nombre.trim())) return focusErr('#dog0-n', 'Falta el nombre del perro.');
-  if (!st.fechaIn) return focusErr('#cal', 'Elegí en el calendario el día que lo traés.');
-  if (!countQty(cfg, st).qty) return focusErr('#cal', 'Elegí el día que lo retirás.');
+  const s = servActual();
+  if (s.cobro === 'cantidad') {
+    if (!calc(cfg, st).qty) return focusErr('#f-cant', `Elegí la cantidad de ${s.unidadPlural}.`);
+  } else {
+    if (!st.fechaIn) return focusErr('#cal', 'Elegí en el calendario el día que lo traés.');
+    if (!calc(cfg, st).qty) return focusErr('#cal', 'Elegí el día que lo retirás.');
+    if (clientMode) {
+      const llenos = diasLlenos();
+      if (llenos.length) return focusErr('#cal', `${llenos.length === 1 ? 'Este día está completo' : 'Estos días están completos'}: ${llenos.map(shortDate).join(', ')}. Elegí otras fechas o escribinos.`);
+    }
+  }
   await generate();
 });
 function focusErr(sel, msg) {
@@ -412,7 +444,7 @@ function focusErr(sel, msg) {
   // el aviso queda pegado al campo, no en un cartel que se va
   const id = 'err-' + (el.id || 'campo');
   const p = document.createElement('p'); p.className = 'err'; p.id = id; p.textContent = msg; p.setAttribute('role', 'alert');
-  (el.id === 'cal' ? $('#calHint') : el).insertAdjacentElement('afterend', p);
+  (el.id === 'cal' ? $('#calHint') : el.id === 'f-cant' ? el.parentElement : el).insertAdjacentElement('afterend', p);
   el.setAttribute('aria-invalid', 'true'); el.setAttribute('aria-describedby', id);
   el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   setTimeout(() => (el.id === 'cal' ? ($('#calGrid .today') || $('#calGrid .day')) : el).focus({ preventScroll: true }), 350);
@@ -422,12 +454,12 @@ function clearErrors() {
   $$('#form [aria-invalid]').forEach((x) => { x.removeAttribute('aria-invalid'); x.removeAttribute('aria-describedby'); });
 }
 
-/* ======================= RECIBO (CANVAS → PNG) ======================= */
+/* ======================= PRESUPUESTO (CANVAS → PNG) ======================= */
 const RC = {
   bg: '#e3edf6', paper: '#ffffff', ink: '#0f2a5c', ink2: '#4b6183', ink3: '#8496ae', rule: '#d9e4ef',
-  brand: '#1d4fa6', accent: '#13a6cb', sky: '#eaf5fb', go: '#1e8a55', field: '#f1f6fb', ball: '#e3262b',
+  brand: '#1d4fa6', accent: '#13a6cb', sky: '#eaf5fb', go: '#1e8a55', field: '#f1f6fb', ball: '#e3262b', warm: '#b4531a',
 };
-/* logo: si existe icons/logo.png se usa en la app y en el recibo */
+/* logo: si existe icons/logo.png se usa en la app y en el presupuesto */
 let logoImg = null;
 const logoReady = new Promise((res) => {
   const im = new Image();
@@ -476,11 +508,6 @@ function fit(ctx, text, maxW, fontFn, start, min) {
   while (px > min && ctx.measureText(text).width > maxW) { px -= 2; ctx.font = fontFn(px); }
   return px;
 }
-function paw(ctx, cx, cy, s, color) {
-  ctx.fillStyle = color;
-  const el = (x, y, rx, ry, rot) => { ctx.beginPath(); ctx.ellipse(cx + x * s, cy + y * s, rx * s, ry * s, rot, 0, Math.PI * 2); ctx.fill(); };
-  el(0, 4.2, 4.6, 3.9, 0); el(-6.7, -1.4, 2, 2.6, -0.31); el(-2.8, -5.6, 2, 2.7, -0.1); el(2.8, -5.6, 2, 2.7, 0.1); el(6.7, -1.4, 2, 2.6, 0.31);
-}
 
 function drawReceipt(data) {
   const { c, s, r, numero, fecha, tipo } = data;
@@ -491,10 +518,7 @@ function drawReceipt(data) {
   const text = (t, x, y, font, color, align = 'left', ls = '0px') => {
     ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; spacing(ls); ctx.fillText(t, x, y); spacing('0px'); ctx.textAlign = 'left';
   };
-  const hr = (yy, dashed) => {
-    ctx.strokeStyle = RC.rule; ctx.lineWidth = 2; ctx.setLineDash(dashed ? [10, 8] : []);
-    ctx.beginPath(); ctx.moveTo(P, yy); ctx.lineTo(R, yy); ctx.stroke(); ctx.setLineDash([]);
-  };
+  const hr = (yy) => { ctx.strokeStyle = RC.rule; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(P, yy); ctx.lineTo(R, yy); ctx.stroke(); };
   let y = M;
 
   /* --- cabecera: logo sobre celeste --- */
@@ -516,8 +540,6 @@ function drawReceipt(data) {
     const wpx = fit(ctx, first, IW - metaW - 40, (px) => F.disp(900, px, 'expanded'), 76, 40);
     text(first, P, y + 104, F.disp(900, wpx, 'expanded'), RC.brand);
     if (rest) text(rest, P, y + 104 + wpx * 0.92, F.disp(900, wpx, 'expanded'), RC.accent);
-    ctx.font = F.disp(900, wpx, 'expanded');
-    ctx.fillStyle = RC.ball; ctx.beginPath(); ctx.arc(P + ctx.measureText(first).width + 22, y + 104 - wpx * 0.62, wpx * 0.14, 0, Math.PI * 2); ctx.fill();
   }
   const my = y + (headH - 16) / 2;
   text(tipo === 'presupuesto' ? 'PRESUPUESTO' : 'RECIBO', R, my - 34, F.mono(600, 24), RC.accent, 'right', '3px');
@@ -526,21 +548,21 @@ function drawReceipt(data) {
   y += headH + 64;
 
   /* --- protagonista: el perro --- */
-  const names = r.dogs.map((d) => d.nombre.toUpperCase());
-  const hero = names.length > 2 ? names.slice(0, -1).join(', ') + ' Y ' + names.at(-1) : names.join(' Y ');
+  const names = nombresPerros(s).map((x) => x.toUpperCase());
+  const hero = names.length > 2 ? names.slice(0, -1).join(', ') + ' Y ' + names[names.length - 1] : names.join(' Y ');
   let hpx = 132; ctx.font = F.disp(900, hpx, 'expanded');
   while (hpx > 70 && ctx.measureText(hero).width > IW) { hpx -= 4; ctx.font = F.disp(900, hpx, 'expanded'); }
   const heroLines = wrap(ctx, hero, IW);
   heroLines.forEach((ln, i) => text(ln, P - 4, y + hpx * 0.78 + i * hpx * 0.96, F.disp(900, hpx, 'expanded'), RC.brand));
   y += hpx * 0.78 + (heroLines.length - 1) * hpx * 0.96 + 26;
   const dogInfo = s.dogs.map((d) => [d.raza, d.edad].filter(Boolean).join(', ')).filter(Boolean).join(' · ');
-  const tagline = [r.serv.nombre.toUpperCase(), `${r.qty} ${r.qty === 1 ? (r.unidad === 'noche' ? 'NOCHE' : 'DÍA') : r.uPlur.toUpperCase()}`].join('  ·  ');
-  text(tagline, P, y + 32, F.mono(600, 28), RC.accent, 'left', '2px');
+  const tagline = [r.serv.nombre.toUpperCase(), `${r.qty} ${(r.qty === 1 ? r.unidad : r.unidadPlural).toUpperCase()}`].join('  ·  ');
+  ctx.font = F.mono(600, 28); wrap(ctx, tagline, IW).forEach((ln, i) => text(ln, P, y + 32 + i * 38, F.mono(600, 28), RC.accent, 'left', '2px'));
   y += 44;
   if (dogInfo) { ctx.font = F.body(400, 28); wrap(ctx, dogInfo, IW).forEach((ln) => { text(ln, P, y + 36, F.body(400, 28), RC.ink3); y += 40; }); }
   y += 40;
 
-  /* --- pase de ingreso / retiro --- */
+  /* --- pase de ingreso / retiro (solo servicios con fechas) --- */
   const dateBlock = (x, w, label, ds, hs) => {
     text(label, x + 32, y + 54, F.mono(600, 22), RC.ink2, 'left', '3px');
     const d = parseDate(ds);
@@ -552,14 +574,13 @@ function drawReceipt(data) {
     } else text('—', x + 30, y + 128, F.disp(800, 58), RC.ink3);
   };
   const passH = 210;
-  if (s.fechaIn || s.fechaOut) {
+  if (r.serv.cobro !== 'cantidad' && (s.fechaIn || s.fechaOut)) {
     ctx.fillStyle = RC.sky; rr(ctx, P, y, IW, passH, 22); ctx.fill();
     if (s.fechaOut && s.fechaOut !== s.fechaIn) {
       dateBlock(P, IW / 2, 'INGRESO', s.fechaIn, s.horaIn);
       dateBlock(P + IW / 2 + 10, IW / 2 - 10, 'RETIRO', s.fechaOut, s.horaOut);
       ctx.strokeStyle = RC.rule; ctx.lineWidth = 3; ctx.setLineDash([10, 9]);
       ctx.beginPath(); ctx.moveTo(P + IW / 2, y + 28); ctx.lineTo(P + IW / 2, y + passH - 28); ctx.stroke(); ctx.setLineDash([]);
-      // flecha
       ctx.fillStyle = RC.paper; ctx.beginPath(); ctx.arc(P + IW / 2, y + passH / 2, 26, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = RC.brand; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.beginPath(); ctx.moveTo(P + IW / 2 - 10, y + passH / 2); ctx.lineTo(P + IW / 2 + 10, y + passH / 2);
@@ -570,10 +591,10 @@ function drawReceipt(data) {
     y += passH + 36;
   }
 
-  /* --- datos del cliente --- */
-  const facts = [['CLIENTE', s.cliente], ['WHATSAPP', s.telCliente], ['DIRECCIÓN', s.dirCliente]];
+  /* --- datos del tutor --- */
+  const facts = [['TUTOR/A', s.cliente], ['WHATSAPP', s.telCliente], ['DIRECCIÓN', s.dirCliente]];
   const exc = (s.excluidos || []).filter((k) => k > s.fechaIn && k < (s.fechaOut || '')).sort();
-  if (r.unidad !== 'noche' && exc.length) facts.push(['NO VIENE', exc.map(shortDate).join(', ')]);
+  if (r.serv.cobro === 'dia' && exc.length) facts.push(['NO VIENE', exc.map(shortDate).join(', ')]);
   facts.filter((f) => f[1]).forEach(([k, v]) => {
     ctx.font = F.body(600, 30); const lines = wrap(ctx, v, IW - 230);
     text(k, P, y + 38, F.mono(600, 22), RC.ink3, 'left', '2px');
@@ -586,22 +607,26 @@ function drawReceipt(data) {
   text('DETALLE', P, y + 22, F.mono(600, 22), RC.ink3, 'left', '2px');
   text('IMPORTE', R, y + 22, F.mono(600, 22), RC.ink3, 'right', '2px');
   y += 42;
-  const item = (name, detail, amount) => {
+  const item = (name, detail, amount, color = RC.ink) => {
     ctx.font = F.body(600, 34); const lines = wrap(ctx, name, IW - 260);
-    lines.forEach((ln, i) => text(ln, P, y + 46 + i * 42, F.body(600, 34), RC.ink));
-    text(money(amount), R, y + 46, F.body(600, 34), RC.ink, 'right');
+    lines.forEach((ln, i) => text(ln, P, y + 46 + i * 42, F.body(600, 34), color));
+    text(money(amount), R, y + 46, F.body(600, 34), color, 'right');
     let yy = y + 46 + (lines.length - 1) * 42;
     if (detail) { ctx.font = F.mono(500, 25); wrap(ctx, detail, IW - 260).forEach((ln) => { yy += 38; text(ln, P, yy, F.mono(500, 25), RC.ink2); }); }
     y = yy + 26; hr(y);
   };
   hr(y);
   r.dogs.forEach((d) => item(d.nombre, [d.detalle, d.notas].filter(Boolean).join(' · '), d.importe));
+  r.recargos.forEach((x) => item(x.nombre, x.detalle, x.importe, RC.warm));
+  if (r.adaptacion) item(r.adaptacion.nombre, r.adaptacion.detalle, r.adaptacion.importe);
   r.extras.forEach((e) => item(e.nombre, e.detalle, e.importe));
   const line = (k, v, color, weight = 500) => {
-    text(k, P, y + 46, F.body(weight, 30), color); text(v, R, y + 46, F.body(600, 30), color, 'right'); y += 58;
+    ctx.font = F.body(weight, 30); const lines = wrap(ctx, k, IW - 240);
+    lines.forEach((ln, i) => text(ln, P, y + 46 + i * 40, F.body(weight, 30), color));
+    text(v, R, y + 46, F.body(600, 30), color, 'right'); y += 18 + lines.length * 40;
   };
   y += 8;
-  if (r.extras.length || r.descuentos.length || r.dogs.length > 1) line('Subtotal', money(r.subtotal), RC.ink2);
+  if (r.extras.length || r.descuentos.length || r.dogs.length > 1 || r.recargos.length || r.adaptacion) line('Subtotal', money(r.subtotal), RC.ink2);
   r.descuentos.forEach((d) => line(d.nombre, '−' + money(d.importe), RC.go, 600));
   y += 24;
 
@@ -676,7 +701,7 @@ function drawReceipt(data) {
     });
     y += bh;
   }
-  const foot = [c.telefono && `WhatsApp ${c.telefono}`, c.direccion].filter(Boolean).join('  ·  ');
+  const foot = [c.telefono && `WhatsApp ${c.telefono}`, c.direccion || c.zona].filter(Boolean).join('  ·  ');
   y += 40;
   if (foot) { ctx.font = F.body(500, 25); wrap(ctx, foot, IW).forEach((ln) => { text(ln, W / 2, y + 26, F.body(500, 25), RC.ink2, 'center'); y += 36; }); }
   y += 24;
@@ -702,12 +727,16 @@ function summaryText(data) {
   const { c, s, r, numero } = data;
   const L = [];
   L.push(`*${c.negocio}* · ${numero}`);
-  L.push(`Cliente: ${s.cliente}${s.telCliente ? ' (' + s.telCliente + ')' : ''}`);
-  L.push(`Perro${r.dogs.length > 1 ? 's' : ''}: ${r.dogs.map((d) => d.nombre).join(', ')}`);
+  L.push(`Tutor/a: ${s.cliente}${s.telCliente ? ' (' + s.telCliente + ')' : ''}`);
+  L.push(`Perro${s.dogs.length > 1 ? 's' : ''}: ${nombresPerros(s).join(', ')}`);
   L.push(`Servicio: ${r.serv.nombre}`);
-  if (s.fechaIn || s.fechaOut) L.push(`Fechas: ${[fmtDate(s.fechaIn), fmtDate(s.fechaOut)].filter(Boolean).join(' al ')}`);
-  if (s.horaIn || s.horaOut) L.push(`Horario: ${s.horaIn} a ${s.horaOut}`);
-  L.push(`Cantidad: ${r.qty} ${r.uPlur}`);
+  if (r.serv.cobro !== 'cantidad') {
+    if (s.fechaIn || s.fechaOut) L.push(`Fechas: ${[fmtDate(s.fechaIn), fmtDate(s.fechaOut)].filter(Boolean).join(' al ')}`);
+    if (s.horaIn || s.horaOut) L.push(`Horario: ${s.horaIn} a ${s.horaOut}`);
+  }
+  L.push(`Cantidad: ${r.qty} ${r.qty === 1 ? r.unidad : r.unidadPlural}`);
+  r.recargos.forEach((x) => L.push(`${x.nombre}: ${money(x.importe)}`));
+  if (r.adaptacion) L.push(`${r.adaptacion.nombre}: ${money(r.adaptacion.importe)}`);
   r.extras.forEach((e) => L.push(`+ ${e.nombre}: ${money(e.importe)}`));
   r.descuentos.forEach((d) => L.push(`${d.nombre}: −${money(d.importe)}`));
   r.pagos.forEach((p) => L.push(`*Total${p.nombre ? ' ' + p.nombre.toLowerCase() : ''}: ${money(p.total)}*`));
@@ -736,23 +765,23 @@ async function generate(fromHistory) {
     const estado = (prev && prev.estado && prev.estado !== 'enviado') ? prev.estado : (num(st.pagado) > 0 ? 'senado' : 'enviado');
     const entry = { id: currentId, numero, fecha, ts: Date.now(), estado, c: clone(cfg), s: clone(st) };
     lsSet(LS_HIST, [entry, ...hist.filter((h) => h.id !== currentId)].slice(0, 100));
-    renderHistory(); lsSet(LS_DRAFT, { st, currentId });
+    renderHistory(); lsSet(LS_DRAFT, { st, currentId }); refreshDisp();
   }
   await Promise.all([fontsReady(), logoReady]);
-  const r = calc(c, s);
+  const r = calc(c, s, !clientMode);
   const data = { c, s, r, numero, fecha, tipo };
   const canvas = drawReceipt(data);
   const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
   if (lastResult) URL.revokeObjectURL(lastResult.url);
   const safe = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '');
-  const fname = `${tipo}-${safe(r.dogs[0]?.nombre)}-${safe(numero)}.png`.toLowerCase();
+  const fname = `${tipo}-${safe(nombresPerros(s)[0])}-${safe(numero)}.png`.toLowerCase();
   lastResult = { blob, url: URL.createObjectURL(blob), file: new File([blob], fname, { type: 'image/png' }), data };
 
   $('#previewImg').src = lastResult.url;
   $('#modalTitle').textContent = clientMode ? 'Tu presupuesto' : `${tipo === 'recibo' ? 'Recibo' : 'Presupuesto'} ${numero}`;
   const wa = $('#btnWaSend');
   if (clientMode) {
-    wa.lastChild.textContent = 'Mandar al cuidador'; wa.hidden = !c.telefono;
+    wa.lastChild.textContent = 'Mandar para reservar'; wa.hidden = !c.telefono;
     wa.href = waLink(c.telefono, `¡Hola! Quiero reservar.\n\n${summaryText(data)}`);
   } else {
     wa.lastChild.textContent = s.telCliente ? 'Texto por WhatsApp' : 'WhatsApp';
@@ -787,7 +816,7 @@ function closeModal() { $('#modal').hidden = true; document.body.style.overflow 
 const ESTADOS = [['enviado', 'Enviado'], ['senado', 'Señado'], ['pagado', 'Pagado'], ['cancelado', 'Cancelado']];
 let histFiltro = 'todos';
 const estadoDe = (h) => h.estado || (num(h.s.pagado) > 0 ? 'senado' : 'enviado');
-const norm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const norm = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 function renderHistory() {
   const list = lsGet(LS_HIST, []);
   const box = $('#historyList');
@@ -803,11 +832,12 @@ function renderHistory() {
   $('#histSum').textContent = `${list.length} en total${pend ? ` · ${pend} sin confirmar` : ''}${rows.length !== list.length ? ` · mostrando ${rows.length}` : ''}`;
   if (!rows.length) { box.innerHTML = '<p class="empty" style="padding:18px 16px">No hay presupuestos que coincidan con la búsqueda.</p>'; return; }
   box.innerHTML = rows.map((h) => {
-    const r = calc(h.c, h.s), e = estadoDe(h);
+    const r = calc(h.c, h.s, true), e = estadoDe(h);
+    const cuando = r.serv.cobro === 'cantidad' ? `${r.qty} ${r.qty === 1 ? r.unidad : r.unidadPlural}` : (h.s.fechaIn ? fmtDate(h.s.fechaIn).slice(0, 5) : h.fecha);
     return `<div class="hist ${e === 'cancelado' ? 'cancelado' : ''}">
       <div class="info">
-        <div class="t"><span class="n">${esc(h.numero)}</span><span class="d">${esc(r.dogs.map((d) => d.nombre).join(', '))}</span></div>
-        <div class="s">${esc(h.s.cliente)} · ${esc(h.s.fechaIn ? fmtDate(h.s.fechaIn).slice(0, 5) : h.fecha)} · ${money(Math.min(...r.pagos.map((p) => p.total)))}</div>
+        <div class="t"><span class="n">${esc(h.numero)}</span><span class="d">${esc(nombresPerros(h.s).join(', '))}</span></div>
+        <div class="s">${esc(h.s.cliente)} · ${esc(cuando)} · ${money(Math.min(...r.pagos.map((p) => p.total)))}</div>
         <div class="meta"><label class="sr" for="est-${h.id}">Estado de ${esc(h.numero)}</label>
           <select id="est-${h.id}" class="estado e-${e}" data-hest="${h.id}">${ESTADOS.map(([v, t]) => `<option value="${v}" ${v === e ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
       </div>
@@ -828,8 +858,9 @@ $('#histF').addEventListener('click', (e) => {
 $('#historyList').addEventListener('change', (e) => {
   const sel = e.target.closest('[data-hest]'); if (!sel) return;
   const list = lsGet(LS_HIST, []), h = list.find((x) => x.id === sel.dataset.hest); if (!h) return;
-  h.estado = sel.value; lsSet(LS_HIST, list); renderHistory();
-  toast(`${h.numero}: ${ESTADOS.find((x) => x[0] === sel.value)[1].toLowerCase()}.`);
+  h.estado = sel.value; lsSet(LS_HIST, list); renderHistory(); refreshDisp();
+  const ocupa = ['senado', 'pagado'].includes(sel.value) && servDe(h.c, h.s.servicio).ocupaCupo;
+  toast(`${h.numero}: ${ESTADOS.find((x) => x[0] === sel.value)[1].toLowerCase()}.${ocupa ? ' Ya ocupa su lugar en la agenda.' : ''}`);
 });
 $('#historyList').addEventListener('click', async (e) => {
   const b = e.target.closest('button'); if (!b) return;
@@ -838,22 +869,22 @@ $('#historyList').addEventListener('click', async (e) => {
   const h = list.find((x) => x.id === id); if (!h) return;
   if (b.dataset.hview) await generate(h);
   else if (b.dataset.hedit) {
-    st = Object.assign(blankState(), clone(h.s)); currentId = h.id; renderForm(); showTab('recibo');
+    st = Object.assign(blankState(), clone(h.s)); currentId = h.id; calView = null; renderForm(); showTab('recibo');
     toast(`Editando ${h.numero}. Al generar se actualiza.`);
   } else if (b.dataset.hdup) {
-    st = Object.assign(blankState(), clone(h.s), { fechaIn: '', fechaOut: '', excluidos: [], pagado: '' });
+    st = Object.assign(blankState(), clone(h.s), { fechaIn: '', fechaOut: '', excluidos: [], pagado: '', primeraVez: false });
     currentId = null; calView = null; renderForm(); showTab('recibo');
     toast('Copiado con los mismos datos. Elegí las fechas nuevas.');
   } else if (await ask(`¿Borrar ${h.numero}?`, 'Borrar')) {
-    lsSet(LS_HIST, list.filter((x) => x.id !== id)); if (currentId === id) currentId = null; renderHistory();
+    lsSet(LS_HIST, list.filter((x) => x.id !== id)); if (currentId === id) currentId = null; renderHistory(); refreshDisp();
   }
 });
 
-/* ======================= LINK PARA CLIENTE ======================= */
+/* ======================= LINK PARA TUTORES ======================= */
 function publicCfg() { const c = clone(cfg); delete c.nextNumero; return c; }
 
 $('#btnMakeLink').addEventListener('click', async () => {
-  const payload = { v: 1, c: publicCfg() };
+  const payload = { v: 2, c: publicCfg() };
   if ($('#linkPrefill').checked) { const p = clone(st); delete p.descExtra; delete p.pagado; payload.s = p; }
   const url = `${location.origin}${location.pathname}#c=${await encodePayload(payload)}`;
   $('#linkText').value = url; $('#linkOut').hidden = false;
@@ -872,7 +903,7 @@ $('#btnShareLink').addEventListener('click', async () => {
 });
 
 /* ======================= AJUSTES ======================= */
-function saveCfg() { lsSet(LS_CFG, cfg); lsSet(LS_BASE, DEFAULT_CFG); applyBrand(); checkSetup(); }
+function saveCfg() { lsSet(LS_CFG, cfg); lsSet(LS_BASE, DEFAULT_CFG); applyBrand(); checkSetup(); refreshPubState(); }
 function faltantes() {
   const f = [];
   if (!String(cfg.telefono || '').trim()) f.push(['tu WhatsApp', '#c-tel']);
@@ -894,40 +925,187 @@ function applyBrand() {
   document.title = name;
 }
 logoReady.then((im) => { if (im) { $('#brandLogo').src = im.src; $('#brandLogo').hidden = false; $('#brandWord').hidden = true; } });
-function fillCfgForm() { $$('[data-cfg]').forEach((el) => (el.value = cfg[el.dataset.cfg] ?? '')); }
 
+/* campos simples con data-cfg (admite rutas como "adaptacion.pct") */
+function fillCfgForm() {
+  $$('[data-cfg]').forEach((el) => {
+    if (el === document.activeElement) return;
+    const v = getPath(cfg, el.dataset.cfg);
+    if (el.type === 'checkbox') el.checked = v !== false && v !== undefined ? !!v : false;
+    else if (el.hasAttribute('data-lines')) el.value = Array.isArray(v) ? v.join('\n') : (v || '');
+    else el.value = v ?? '';
+  });
+}
+function onCfgField(t) {
+  const k = t.dataset.cfg;
+  let v;
+  if (t.type === 'checkbox') v = t.checked;
+  else if (t.type === 'number' || t.hasAttribute('data-num')) v = num(t.value);
+  else if (t.hasAttribute('data-lines')) v = t.value.split('\n').map((x) => x.trim()).filter(Boolean);
+  else v = t.value;
+  setPath(cfg, k, v);
+  saveCfg();
+  if (!clientMode) { renderForm(); if (k.startsWith('cupos')) refreshDisp(); }
+}
+document.addEventListener('input', (e) => { const t = e.target; if (t.dataset && t.dataset.cfg && t.type !== 'checkbox' && t.tagName !== 'SELECT') onCfgField(t); });
+document.addEventListener('change', (e) => { const t = e.target; if (t.dataset && t.dataset.cfg && (t.type === 'checkbox' || t.tagName === 'SELECT')) onCfgField(t); });
+
+/* listas simples */
 const EDITORS = {
-  servicios: { el: '#edServicios', cols: 'minmax(0,1.2fr) minmax(0,1fr) auto', blank: { nombre: '', precio: 0, unidad: 'dia' }, add: 'Agregar servicio',
-    fields: [{ k: 'nombre', l: 'Servicio' }, { k: 'precio', l: 'Precio', t: 'number' }, { k: 'unidad', l: 'Por', t: 'select', o: [['dia', 'día'], ['noche', 'noche']] }] },
-  tamanos: { el: '#edTamanos', cols: 'minmax(0,2fr) minmax(0,1fr) auto', blank: { nombre: '', recargo: 0 }, add: 'Agregar tamaño',
-    fields: [{ k: 'nombre', l: 'Tamaño' }, { k: 'recargo', l: 'Recargo %', t: 'number' }] },
-  extras: { el: '#edExtras', cols: 'minmax(0,1.2fr) minmax(0,1fr) auto', blank: { nombre: '', precio: 0, unidad: 'unico' }, add: 'Agregar extra',
-    fields: [{ k: 'nombre', l: 'Extra' }, { k: 'precio', l: 'Precio', t: 'number' }, { k: 'unidad', l: 'Cobro', t: 'select', o: [['unico', 'único'], ['dia', 'por día']] }] },
-  pagos: { el: '#edPagos', cols: 'minmax(0,2fr) minmax(0,1fr) auto', blank: { nombre: '', descuento: 0 }, add: 'Agregar forma de pago',
-    fields: [{ k: 'nombre', l: 'Forma de pago' }, { k: 'descuento', l: 'Desc. %', t: 'number' }] },
-  descEstadia: { el: '#edDescEstadia', cols: 'minmax(0,1fr) minmax(0,1fr) auto', blank: { desde: 0, pct: 0 }, add: 'Agregar escalón',
-    fields: [{ k: 'desde', l: 'Desde (días)', t: 'number' }, { k: 'pct', l: 'Desc. %', t: 'number' }] },
+  extras: { el: '#edExtras', cols: 'minmax(0,1.1fr) minmax(0,1fr) auto', blank: { nombre: '', precio: 0, cobro: 'unico', web: true }, add: 'Agregar extra',
+    fields: [{ k: 'nombre', l: 'Extra', full: true }, { k: 'precio', l: 'Precio', t: 'number' },
+      { k: 'cobro', l: 'Se cobra', t: 'select', o: Object.entries(Cotizador.COBRO_EXTRA) }, { k: 'web', l: 'Mostrar en la calculadora de la web', t: 'check', full: true }] },
+  pagos: { el: '#edPagos', cols: 'minmax(0,1fr) auto', blank: { nombre: '', descuento: 0 }, add: 'Agregar forma de pago',
+    fields: [{ k: 'nombre', l: 'Forma de pago', full: true }, { k: 'descuento', l: 'Descuento %', t: 'number' }] },
+  tamanos: { el: '#edTamanos', cols: 'minmax(0,1fr) auto', blank: { nombre: '', recargo: 0 }, add: 'Agregar tamaño',
+    fields: [{ k: 'nombre', l: 'Tamaño', full: true }, { k: 'recargo', l: 'Recargo %', t: 'number' }] },
+  fechasEspeciales: { el: '#edFechas', cols: 'minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr) auto', blank: { nombre: '', desde: '', hasta: '', recargo: 100 }, add: 'Agregar fecha especial',
+    fields: [{ k: 'nombre', l: 'Nombre', full: true, ph: 'Navidad' }, { k: 'desde', l: 'Desde', ph: '12-24' }, { k: 'hasta', l: 'Hasta', ph: '12-25' }, { k: 'recargo', l: 'Recargo %', t: 'number' }] },
+  preguntas: { el: '#edPreg', cols: 'minmax(0,1fr) auto', blank: { p: '', r: '' }, add: 'Agregar pregunta',
+    fields: [{ k: 'p', l: 'Pregunta', full: true }, { k: 'r', l: 'Respuesta', t: 'textarea', full: true }] },
 };
 function renderEditor(key) {
-  const E = EDITORS[key], box = $(E.el);
-  box.innerHTML = cfg[key].map((item, i) => `
-    <div class="ed-row" style="grid-template-columns:${E.cols}">
-      ${E.fields.map((f) => { const id = `ed-${key}-${i}-${f.k}`; return `<div class="field"><label for="${id}">${f.l}</label>${f.t === 'select'
-        ? `<select id="${id}" data-ed="${key}" data-i="${i}" data-k="${f.k}">${f.o.map(([v, t]) => `<option value="${v}" ${item[f.k] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`
-        : `<input id="${id}" data-ed="${key}" data-i="${i}" data-k="${f.k}" ${f.t === 'number' ? 'type="number" step="any" inputmode="decimal"' : ''} value="${esc(item[f.k])}">`}</div>`; }).join('')}
+  const E = EDITORS[key], box = $(E.el); if (!box) return;
+  if (!Array.isArray(cfg[key])) cfg[key] = [];
+  box.innerHTML = cfg[key].map((raw, i) => {
+    const item = key === 'extras' ? Object.assign({}, raw, Cotizador.extra(raw)) : raw;
+    return `<div class="ed-row" style="grid-template-columns:${E.cols}">
+      ${E.fields.map((f) => {
+        const id = `ed-${key}-${i}-${f.k}`, attrs = `id="${id}" data-ed="${key}" data-i="${i}" data-k="${f.k}"`, full = f.full ? ' style="grid-column:1/-1"' : '';
+        if (f.t === 'check') return `<label class="switch"${full} for="${id}"><input type="checkbox" ${attrs} ${item[f.k] !== false ? 'checked' : ''}><span>${f.l}</span></label>`;
+        let ctl;
+        if (f.t === 'select') ctl = `<select ${attrs}>${f.o.map(([v, t]) => `<option value="${v}" ${item[f.k] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+        else if (f.t === 'textarea') ctl = `<textarea ${attrs} rows="2">${esc(item[f.k])}</textarea>`;
+        else ctl = `<input ${attrs} ${f.t === 'number' ? 'type="number" step="any" inputmode="decimal"' : ''} ${f.ph ? `placeholder="${esc(f.ph)}"` : ''} value="${esc(item[f.k])}">`;
+        return `<div class="field"${full}><label for="${id}">${f.l}</label>${ctl}</div>`;
+      }).join('')}
       <button type="button" class="iconbtn del" data-edel="${key}" data-i="${i}" aria-label="Quitar">${icon('x')}</button>
-    </div>`).join('') + `<button type="button" class="btn btn-sm ed-add" data-eadd="${key}">${icon('plus')}${E.add}</button>`;
+    </div>`;
+  }).join('') + `<button type="button" class="btn btn-sm ed-add" data-eadd="${key}">${icon('plus')}${E.add}</button>`;
 }
-$('#cfgForm').addEventListener('input', (e) => {
-  const t = e.target;
-  if (t.dataset.cfg) {
-    cfg[t.dataset.cfg] = t.type === 'number' ? num(t.value) : t.value;
-  } else if (t.dataset.ed) {
-    const f = EDITORS[t.dataset.ed].fields.find((x) => x.k === t.dataset.k);
-    cfg[t.dataset.ed][+t.dataset.i][t.dataset.k] = f.t === 'number' ? num(t.value) : t.value;
-  } else return;
+function onEdField(t) {
+  const E = EDITORS[t.dataset.ed], f = E.fields.find((x) => x.k === t.dataset.k);
+  const item = cfg[t.dataset.ed][+t.dataset.i];
+  item[t.dataset.k] = f.t === 'check' ? t.checked : f.t === 'number' ? num(t.value) : t.value;
+  if (t.dataset.ed === 'extras') delete item.unidad;   // formato viejo
   saveCfg(); renderForm();
+}
+$('#cfgForm').addEventListener('input', (e) => { const t = e.target; if (t.dataset.ed && t.type !== 'checkbox' && t.tagName !== 'SELECT') onEdField(t); });
+$('#cfgForm').addEventListener('change', (e) => { const t = e.target; if (t.dataset.ed && (t.type === 'checkbox' || t.tagName === 'SELECT')) onEdField(t); });
+
+/* ---------- servicios: una tarjeta con todas las opciones ---------- */
+const COBROS = [['dia', 'Por día (se eligen fechas)'], ['noche', 'Por noche (se eligen fechas)'], ['cantidad', 'Por cantidad (clases, sesiones…)']];
+const UNIDAD_DEF = { dia: ['día', 'días'], noche: ['noche', 'noches'], cantidad: ['clase', 'clases'] };
+const ICONOS = [['casa', 'Casa'], ['sol', 'Sol'], ['correa', 'Correa'], ['educacion', 'Educación']];
+const SRV_CHECKS = [
+  ['porPerro', 'El precio es por cada perro'],
+  ['ocupaCupo', 'Usa un lugar de los cupos diarios'],
+  ['adaptacion', 'Necesita la visita de adaptación'],
+  ['web', 'Mostrar en la página web'],
+  ['destacado', 'Destacarlo en la página web'],
+];
+function renderSrv() {
+  const open = new Set($$('#edSrv details[open]').map((d) => +d.dataset.i));
+  $('#edSrv').innerHTML = cfg.servicios.map((raw, i) => {
+    const s = Cotizador.servicio(raw, i), id = (k) => `srv-${i}-${k}`;
+    const inp = (k, l, o = {}) => `<div class="field"${o.full ? ' style="grid-column:1/-1"' : ''}><label for="${id(k)}">${l}${o.opt ? ` <span class="opt">${o.opt}</span>` : ''}</label><input id="${id(k)}" data-srv="${i}" data-k="${k}" ${o.t === 'number' ? 'type="number" step="any" inputmode="decimal" data-t="number"' : ''} ${o.ph ? `placeholder="${esc(o.ph)}"` : ''} value="${esc(o.v !== undefined ? o.v : s[k])}"></div>`;
+    const tiers = (Array.isArray(raw.descCantidad) ? raw.descCantidad : []);
+    return `<details class="srv" data-i="${i}" ${open.has(i) ? 'open' : ''}>
+      <summary><span class="srv-n">${esc(s.nombre)}</span><span class="srv-p">${money(s.precio)} por ${esc(s.unidad)}</span><span class="srv-c">${esc(s.categoria)}${s.web ? '' : ' · oculto en la web'}</span></summary>
+      <div class="srv-body">
+        <div class="grid2">
+          ${inp('nombre', 'Nombre')}
+          ${inp('categoria', 'Categoría', { opt: 'agrupa en la calculadora', ph: 'Cuidado, Educación…' })}
+          ${inp('precio', 'Precio', { t: 'number' })}
+          <div class="field"><label for="${id('cobro')}">Cómo se cobra</label><select id="${id('cobro')}" data-srv="${i}" data-k="cobro">${COBROS.map(([v, t]) => `<option value="${v}" ${s.cobro === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+          ${inp('unidad', 'Unidad', { opt: 'singular', ph: 'día, clase, sesión' })}
+          ${inp('unidadPlural', 'Unidad en plural', { ph: 'días, clases, sesiones' })}
+        </div>
+        <div class="grid3">
+          ${inp('cantidadMin', 'Mínimo', { t: 'number' })}
+          ${inp('cantidadDefecto', 'De entrada', { t: 'number' })}
+          ${inp('cantidadMax', 'Máximo', { t: 'number' })}
+        </div>
+        ${s.cobro !== 'cantidad' ? inp('recargoFinde', 'Recargo sábados y domingos', { t: 'number', opt: '%, 0 = sin recargo' }) : ''}
+        <div class="checks">${SRV_CHECKS.map(([k, l]) => `<label class="switch" for="${id(k)}"><input type="checkbox" id="${id(k)}" data-srv="${i}" data-k="${k}" data-t="check" ${s[k] ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>
+        <h5 class="sub5">Descuentos por cantidad</h5>
+        <div class="tiers">${tiers.map((t, j) => `<div class="tier">
+            <span>Desde</span><input type="number" min="1" inputmode="numeric" data-srvd="${i}" data-j="${j}" data-k="desde" value="${esc(t.desde)}" aria-label="Desde cuántas ${esc(s.unidadPlural)}">
+            <span>${esc(s.unidadPlural)}:</span><input type="number" step="any" inputmode="decimal" data-srvd="${i}" data-j="${j}" data-k="pct" value="${esc(t.pct)}" aria-label="Porcentaje de descuento"><span>%</span>
+            <button type="button" class="iconbtn del" data-srvact="ddel" data-i="${i}" data-j="${j}" aria-label="Quitar descuento">${icon('x')}</button></div>`).join('') || '<p class="hint" style="margin:0">Sin descuentos por cantidad.</p>'}</div>
+        <button type="button" class="btn btn-sm ed-add" data-srvact="dadd" data-i="${i}">${icon('plus')}Agregar descuento</button>
+        <div class="field"><label for="${id('bajada')}">Descripción para la web</label><textarea id="${id('bajada')}" data-srv="${i}" data-k="bajada" rows="2">${esc(raw.bajada || '')}</textarea></div>
+        <div class="field"><label for="${id('incluye')}">Qué incluye <span class="opt">uno por renglón</span></label><textarea id="${id('incluye')}" data-srv="${i}" data-k="incluye" data-t="lines" rows="3">${esc(s.incluye.join('\n'))}</textarea></div>
+        <div class="field"><label for="${id('icono')}">Ícono</label><select id="${id('icono')}" data-srv="${i}" data-k="icono">${ICONOS.map(([v, t]) => `<option value="${v}" ${(raw.icono || '') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+        <div class="srv-acts">
+          <button type="button" class="btn btn-sm" data-srvact="up" data-i="${i}" ${i === 0 ? 'disabled' : ''}>${icon('up')}Subir</button>
+          <button type="button" class="btn btn-sm" data-srvact="down" data-i="${i}" ${i === cfg.servicios.length - 1 ? 'disabled' : ''}>${icon('dn')}Bajar</button>
+          <button type="button" class="btn btn-sm" data-srvact="dup" data-i="${i}">${icon('copy')}Duplicar</button>
+          <button type="button" class="btn btn-sm btn-danger" data-srvact="del" data-i="${i}" ${cfg.servicios.length < 2 ? 'disabled' : ''}>${icon('trash')}Borrar</button>
+        </div>
+      </div>
+    </details>`;
+  }).join('');
+}
+function srvLabel(i) {
+  const s = Cotizador.servicio(cfg.servicios[i], i), d = $(`#edSrv details[data-i="${i}"]`); if (!d) return;
+  d.querySelector('.srv-n').textContent = s.nombre;
+  d.querySelector('.srv-p').textContent = `${money(s.precio)} por ${s.unidad}`;
+  d.querySelector('.srv-c').textContent = s.categoria + (s.web ? '' : ' · oculto en la web');
+}
+function onSrvField(t) {
+  const i = +t.dataset.srv, k = t.dataset.k, raw = cfg.servicios[i];
+  const v = t.dataset.t === 'check' ? t.checked : t.dataset.t === 'number' ? num(t.value) : t.dataset.t === 'lines' ? t.value.split('\n').map((x) => x.trim()).filter(Boolean) : t.value;
+  if (k === 'cobro') {
+    // si la unidad era la de fábrica, se adapta al nuevo modo de cobro
+    const s0 = Cotizador.servicio(raw, i), defs = Object.values(UNIDAD_DEF).flat();
+    if (!raw.unidad || defs.includes(s0.unidad) || s0.unidad === 'unidad') { raw.unidad = UNIDAD_DEF[v][0]; raw.unidadPlural = UNIDAD_DEF[v][1]; }
+    if (v === 'cantidad') { if (raw.ocupaCupo === undefined) raw.ocupaCupo = false; if (raw.adaptacion === undefined) raw.adaptacion = false; }
+  }
+  if (k === 'unidad' && raw.unidadPlural === Cotizador.plural(raw.unidad || '')) delete raw.unidadPlural;
+  raw[k] = v;
+  saveCfg(); srvLabel(i);
+  if (k === 'cobro' || k === 'unidadPlural' || k === 'unidad') renderSrv();
+  renderForm();
+}
+$('#edSrv').addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.dataset.srv != null && t.type !== 'checkbox' && t.tagName !== 'SELECT') onSrvField(t);
+  if (t.dataset.srvd != null) {
+    const raw = cfg.servicios[+t.dataset.srvd];
+    raw.descCantidad[+t.dataset.j][t.dataset.k] = num(t.value);
+    saveCfg(); renderForm();
+  }
 });
+$('#edSrv').addEventListener('change', (e) => { const t = e.target; if (t.dataset.srv != null && (t.type === 'checkbox' || t.tagName === 'SELECT')) onSrvField(t); });
+$('#edSrv').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-srvact]'); if (!b) return;
+  const i = +b.dataset.i, act = b.dataset.srvact, list = cfg.servicios, cur = st.servicio;
+  if (act === 'dadd') {
+    const raw = list[i], s = Cotizador.servicio(raw, i);
+    if (!Array.isArray(raw.descCantidad)) raw.descCantidad = [];
+    const last = raw.descCantidad[raw.descCantidad.length - 1];
+    raw.descCantidad.push({ desde: last ? num(last.desde) * 2 : (s.cobro === 'cantidad' ? 4 : 15), pct: last ? num(last.pct) + 5 : 10 });
+  } else if (act === 'ddel') list[i].descCantidad.splice(+b.dataset.j, 1);
+  else if (act === 'up' && i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; st.servicio = cur === i ? i - 1 : cur === i - 1 ? i : cur; }
+  else if (act === 'down' && i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; st.servicio = cur === i ? i + 1 : cur === i + 1 ? i : cur; }
+  else if (act === 'dup') { const c2 = clone(list[i]); c2.nombre += ' (copia)'; list.splice(i + 1, 0, c2); if (cur > i) st.servicio = cur + 1; }
+  else if (act === 'del') {
+    if (!(await ask(`¿Borrar el servicio "${list[i].nombre}"?`, 'Borrar'))) return;
+    list.splice(i, 1); st.servicio = cur === i ? 0 : cur > i ? cur - 1 : cur;
+  } else return;
+  saveCfg(); renderSrv();
+  const keep = act === 'up' ? i - 1 : act === 'down' ? i + 1 : act === 'dup' ? i + 1 : i;
+  const d = $(`#edSrv details[data-i="${keep}"]`); if (d && act !== 'del') d.open = true;
+  renderForm();
+});
+$('#srvAdd').addEventListener('click', () => {
+  cfg.servicios.push({ nombre: 'Nuevo servicio', categoria: 'Servicios', precio: 0, cobro: 'dia', unidad: 'día', unidadPlural: 'días', porPerro: true, ocupaCupo: false, adaptacion: false, web: true });
+  saveCfg(); renderSrv();
+  const d = $(`#edSrv details[data-i="${cfg.servicios.length - 1}"]`); d.open = true; d.querySelector('input').focus(); d.querySelector('input').select();
+  renderForm();
+});
+
 $('#cfgForm').addEventListener('click', async (e) => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.eadd) { cfg[b.dataset.eadd].push(clone(EDITORS[b.dataset.eadd].blank)); renderEditor(b.dataset.eadd); }
@@ -938,10 +1116,10 @@ $('#cfgForm').addEventListener('click', async (e) => {
     renderEditor(k);
   } else if (b.id === 'btnExport') {
     const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'guarderia-ajustes.json'; a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'inquietos-ajustes.json'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000); return;
   } else if (b.id === 'btnFactory') {
-    if (!(await ask('¿Volver a los precios y textos de fábrica? El historial no se borra.', 'Restaurar'))) return;
+    if (!(await ask('¿Volver a los precios y textos que están publicados en la web? El historial no se borra.', 'Restaurar'))) return;
     const n = cfg.nextNumero; cfg = clone(DEFAULT_CFG); cfg.nextNumero = n; initCfgUI();
   } else return;
   saveCfg(); renderForm();
@@ -952,13 +1130,197 @@ $('#fileImport').addEventListener('change', async (e) => {
   catch { toast('Ese archivo no es una copia de ajustes válida.'); }
   e.target.value = '';
 });
-function initCfgUI() { fillCfgForm(); Object.keys(EDITORS).forEach(renderEditor); }
+function initCfgUI() { fillCfgForm(); Object.keys(EDITORS).forEach(renderEditor); renderSrv(); }
 
 $('#setupGo').addEventListener('click', () => {
   const f = faltantes(); showTab('ajustes');
+  const g = $('#cfgForm details.grp'); if (g) g.open = true;
   if (f.length) setTimeout(() => { const el = $(f[0][1]); el.scrollIntoView({ block: 'center' }); el.focus({ preventScroll: true }); }, 60);
 });
 $('#setupLater').addEventListener('click', () => { lsSet('ic.setupLater', Date.now()); checkSetup(); });
+
+/* ======================= AGENDA Y CUPOS ======================= */
+let agView = null, agSel = null;
+function refreshDisp() { if (!clientMode) { DISP = dispLocal(); renderAgenda(); renderForm(); refreshPubState(); } }
+function entradasDelDia(k) {
+  return lsGet(LS_HIST, []).filter((h) => ['senado', 'pagado'].includes(h.estado) && Cotizador.ocupacion([h])[k]);
+}
+function renderAgenda() {
+  if (clientMode || !$('#agGrid')) return;
+  const d0 = new Date();
+  if (!agView) agView = new Date(d0.getFullYear(), d0.getMonth(), 1);
+  const y = agView.getFullYear(), m = agView.getMonth(), today = iso(d0), D = DISP || dispLocal();
+  $('#agTitle').textContent = `${MESES[m]} ${y}`;
+  const lead = (new Date(y, m, 1).getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate();
+  let h = '<span></span>'.repeat(lead);
+  for (let d = 1; d <= days; d++) {
+    const k = iso(new Date(y, m, d)), e = Cotizador.estadoDia(D, k);
+    const cls = ['day', 'agd'];
+    if (k < today) cls.push('past');
+    if (k === today) cls.push('today');
+    if (e.cerrado) cls.push('closed'); else if (e.lleno) cls.push('full'); else if (e.ocupados && e.libres <= num(cfg.cupos.avisoQuedan)) cls.push('few'); else if (e.ocupados) cls.push('some');
+    if (k === agSel) cls.push('sel');
+    const sub = e.cerrado ? 'cerr.' : e.ocupados ? `${e.ocupados}/${e.cap}` : '';
+    h += `<button type="button" class="${cls.join(' ')}" data-agday="${k}" aria-pressed="${k === agSel}" aria-label="${d} de ${MESES[m]}: ${e.cerrado ? 'cerrado' : `${e.ocupados} de ${e.cap} ocupados`}"><span>${d}</span><small>${sub}</small></button>`;
+  }
+  $('#agGrid').innerHTML = h;
+  renderAgDay();
+}
+function renderAgDay() {
+  const box = $('#agDay');
+  if (!agSel) { box.hidden = true; return; }
+  const D = DISP || dispLocal(), e = Cotizador.estadoDia(D, agSel), ag = agGet(), d = parseDate(agSel);
+  const manual = num(ag.extra[agSel]);
+  const ents = entradasDelDia(agSel);
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="agd-head"><h3>${DIAS_LARGOS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}</h3>
+      <button type="button" class="iconbtn" id="agClose" aria-label="Cerrar">${icon('x')}</button></div>
+    <p class="agd-big">${e.cerrado ? '<b>Cerrado</b> · no se toman reservas' : `<b>${e.ocupados}</b> de ${e.cap} lugares ocupados · ${e.libres ? `quedan <b>${e.libres}</b>` : '<b>completo</b>'}`}</p>
+    ${ents.length ? `<ul class="agd-list">${ents.map((h) => `<li><b>${esc(nombresPerros(h.s).join(', '))}</b> · ${esc(h.s.cliente)} · ${esc(servDe(h.c, h.s.servicio).nombre)} <span class="opt">${esc(h.numero)}</span></li>`).join('')}</ul>` : '<p class="hint" style="margin:0">Ningún presupuesto señado o pagado ocupa este día.</p>'}
+    <div class="agd-row"><span>Reservas cargadas a mano</span>
+      <div class="stepper sm"><button type="button" class="stp" data-agm="-1" aria-label="Una menos" ${manual ? '' : 'disabled'}>−</button><output id="agMan">${manual}</output><button type="button" class="stp" data-agm="1" aria-label="Una más">+</button></div></div>
+    <label class="switch" for="agClosed"><input type="checkbox" id="agClosed" ${e.cerrado ? 'checked' : ''}><span>Día cerrado (vacaciones, feriado o lleno por otro motivo)</span></label>`;
+}
+$('#agCal').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'agPrev' || b.id === 'agNext') { agView = new Date(agView.getFullYear(), agView.getMonth() + (b.id === 'agNext' ? 1 : -1), 1); renderAgenda(); }
+  else if (b.dataset.agday) { agSel = agSel === b.dataset.agday ? null : b.dataset.agday; renderAgenda(); if (agSel) $('#agDay').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+});
+$('#agDay').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'agClose') { agSel = null; renderAgenda(); return; }
+  if (b.dataset.agm) {
+    const ag = agGet(); ag.extra[agSel] = Math.max(0, num(ag.extra[agSel]) + +b.dataset.agm);
+    if (!ag.extra[agSel]) delete ag.extra[agSel];
+    lsSet(LS_AG, ag); refreshDisp();
+  }
+});
+$('#agDay').addEventListener('change', (e) => {
+  if (e.target.id !== 'agClosed') return;
+  const ag = agGet(), set = new Set(ag.cerrados);
+  if (e.target.checked) set.add(agSel); else set.delete(agSel);
+  ag.cerrados = [...set].sort(); lsSet(LS_AG, ag); refreshDisp();
+});
+
+/* ======================= PUBLICAR EN LA WEB (GitHub) ======================= */
+function repoGuess() {
+  const h = location.hostname;
+  if (h.endsWith('.github.io')) {
+    const repo = location.pathname.split('/').filter(Boolean)[0];
+    if (repo && repo !== 'app') return `${h.split('.')[0]}/${repo}`;
+  }
+  return '0ariell/WebGuarderiaCanina';
+}
+function ghCfg() { const g = Object.assign({}, lsGet(LS_GH, {})); g.repo = g.repo || repoGuess(); g.branch = g.branch || 'main'; return g; }
+function b64utf8(str) { const bytes = new TextEncoder().encode(str); let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); }
+function unb64utf8(str) { const bin = atob(String(str).replace(/\s/g, '')); return new TextDecoder().decode(Uint8Array.from(bin, (ch) => ch.charCodeAt(0))); }
+function ghErr(status) {
+  const m = {
+    401: 'La clave de GitHub no es válida o venció. Creá una nueva en Ajustes → Conexión con la web.',
+    403: 'La clave no tiene permiso para escribir. Revisá que en Contents diga "Read and write".',
+    404: 'No encuentro el repositorio, o la clave no tiene acceso a él. Revisá el nombre y que lo hayas elegido al crear la clave.',
+    409: 'Hubo otro cambio al mismo tiempo. Probá publicar de nuevo.',
+    422: 'GitHub rechazó el archivo. Probá publicar de nuevo.',
+  }[status];
+  const e = new Error(m || (status ? `GitHub respondió con un error (${status}). Probá de nuevo en un rato.` : 'No hay conexión con GitHub. Revisá internet y probá de nuevo.'));
+  e.status = status; return e;
+}
+async function gh(path, opts = {}) {
+  const g = ghCfg();
+  let r;
+  try {
+    r = await fetch(`https://api.github.com/repos/${g.repo}/${path}`, {
+      method: opts.method || 'GET', cache: 'no-store', body: opts.body,
+      headers: { Authorization: `Bearer ${g.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(opts.body ? { 'Content-Type': 'application/json' } : {}) },
+    });
+  } catch { throw ghErr(0); }
+  return r;
+}
+async function ghPutFile(path, content, message) {
+  const g = ghCfg();
+  const r = await gh(`contents/${path}?ref=${encodeURIComponent(g.branch)}`);
+  let sha = null;
+  if (r.ok) {
+    const j = await r.json(); sha = j.sha;
+    try { if (j.content && unb64utf8(j.content) === content) return 'igual'; } catch { /* sigue */ }
+  } else if (r.status !== 404) throw ghErr(r.status);
+  const w = await gh(`contents/${path}`, { method: 'PUT', body: JSON.stringify(Object.assign({ message, content: b64utf8(content), branch: g.branch }, sha ? { sha } : {})) });
+  if (!w.ok) throw ghErr(w.status);
+  return 'ok';
+}
+function configJs(site) {
+  const f = new Date().toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+  return `/*\n * ============================================================\n *  INQUIETOS CANINOS · DATOS DEL NEGOCIO\n *  Publicado desde la app el ${f}.\n *  Para cambiarlo: app → Ajustes → hacé tus cambios → Publicar.\n *  También se puede editar a mano. Qué significa cada campo: README.md\n * ============================================================\n */\nwindow.INQUIETOS = ${JSON.stringify(site, null, 2)};\n`;
+}
+const dispJson = () => JSON.stringify(dispLocal(), null, 2) + '\n';
+function hash(str) { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return String(h >>> 0); }
+const pubSig = () => hash(JSON.stringify(toSite(cfg)) + dispJson());
+function refreshPubState() {
+  if (clientMode) return;
+  const g = ghCfg(), pub = lsGet(LS_PUB, null);
+  let txt, cls = '';
+  if (!g.token) { txt = 'Para que la web muestre tus precios y cupos, conectá la app con GitHub (Ajustes → Conexión con la web).'; cls = 'warn'; }
+  else if (!pub || pub.sig !== pubSig()) { txt = 'Tenés cambios sin publicar. Tocá Publicar para que la web los muestre.'; cls = 'warn'; }
+  else txt = `Todo publicado · ${new Date(pub.at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}`;
+  $$('[data-pubstate]').forEach((el) => { el.textContent = txt; el.className = 'setup-d ' + cls; });
+  $$('[data-pubcard]').forEach((el) => el.classList.toggle('pending', cls === 'warn'));
+}
+let publishing = false;
+async function publicar() {
+  if (publishing) return;
+  const g = ghCfg();
+  if (!g.token) {
+    showTab('ajustes'); const d = $('#grpGh'); d.open = true;
+    setTimeout(() => { d.scrollIntoView({ block: 'start' }); $('#gh-tok').focus({ preventScroll: true }); }, 60);
+    toast('Primero conectá la app con GitHub. Te dejo los pasos.');
+    return;
+  }
+  publishing = true;
+  const btns = $$('[data-publicar]'); btns.forEach((b) => { b.disabled = true; b.dataset.label = b.lastChild.textContent; b.lastChild.textContent = 'Publicando…'; });
+  try {
+    const r1 = await ghPutFile('config.js', configJs(toSite(cfg)), 'Precios y textos actualizados desde la app');
+    const r2 = await ghPutFile('disponibilidad.json', dispJson(), 'Disponibilidad actualizada desde la app');
+    lsSet(LS_PUB, { sig: pubSig(), at: Date.now() });
+    toast(r1 === 'igual' && r2 === 'igual' ? 'Ya estaba todo publicado.' : 'Publicado. La web se actualiza en 1 o 2 minutos.');
+  } catch (e) {
+    toast(e.message);
+    $$('[data-pubstate]').forEach((el) => { el.textContent = e.message; el.className = 'setup-d warn'; });
+    publishing = false; btns.forEach((b) => { b.disabled = false; b.lastChild.textContent = b.dataset.label; });
+    return;
+  }
+  publishing = false; btns.forEach((b) => { b.disabled = false; b.lastChild.textContent = b.dataset.label; });
+  refreshPubState();
+}
+document.addEventListener('click', (e) => { if (e.target.closest('[data-publicar]')) publicar(); });
+
+function fillGh() {
+  const g = ghCfg();
+  $('#gh-repo').value = g.repo; $('#gh-tok').value = g.token ? '••••••••••••' : '';
+  $('#ghRepoName').textContent = g.repo.split('/')[1] || g.repo;
+  $('#ghState').textContent = g.token ? 'Conectada. Ya podés publicar.' : 'Todavía no está conectada.';
+}
+$('#ghSave').addEventListener('click', async () => {
+  const g = lsGet(LS_GH, {});
+  const repo = $('#gh-repo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+  const tok = $('#gh-tok').value.trim();
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { $('#ghState').textContent = 'El repositorio tiene que ser usuario/nombre, por ejemplo 0ariell/WebGuarderiaCanina.'; return; }
+  g.repo = repo; if (tok && !tok.startsWith('•')) g.token = tok;
+  if (!g.token) { $('#ghState').textContent = 'Pegá la clave que generaste en GitHub.'; return; }
+  lsSet(LS_GH, g);
+  $('#ghState').textContent = 'Probando la conexión…';
+  let msg;
+  try {
+    const r = await gh(`contents/config.js?ref=${encodeURIComponent(ghCfg().branch)}`);
+    if (!r.ok) throw ghErr(r.status);
+    msg = 'Conectada. Ya podés publicar.'; toast('Conexión con GitHub lista.');
+  } catch (e) { msg = e.message; }
+  fillGh(); $('#ghState').textContent = msg; refreshPubState();
+});
+$('#ghForget').addEventListener('click', async () => {
+  if (!(await ask('¿Borrar la clave de GitHub de este celular?', 'Borrar'))) return;
+  const g = lsGet(LS_GH, {}); delete g.token; lsSet(LS_GH, g); fillGh(); refreshPubState();
+});
 
 /* ======================= TEMA CLARO / OSCURO ======================= */
 const mqDark = window.matchMedia('(prefers-color-scheme: dark)');
@@ -982,6 +1344,7 @@ function showTab(name) {
   $$('#tabs button').forEach((b) => { b.classList.toggle('active', b.dataset.tab === name); b.setAttribute('aria-current', b.dataset.tab === name ? 'page' : 'false'); });
   $$('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + name));
   document.body.classList.toggle('on-recibo', name === 'recibo');
+  if (name === 'agenda') refreshDisp();
   window.scrollTo(0, 0);
 }
 $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) showTab(b.dataset.tab); });
@@ -995,6 +1358,14 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
 
+/* disponibilidad publicada (para los tutores) */
+async function cargarDispPublicada() {
+  try {
+    const r = await fetch(`../disponibilidad.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (r.ok) { DISP = await r.json(); if (!DISP.capacidad) DISP.capacidad = num(cfg.cupos.capacidad) || 1; updateSummary(); }
+  } catch { /* sin disponibilidad: se puede elegir cualquier día */ }
+}
+
 /* ======================= INICIO ======================= */
 async function init() {
   const m = location.hash.match(/[#&]c=([^&]+)/);
@@ -1004,38 +1375,40 @@ async function init() {
     clientMode = true;
     cfg = clone(DEFAULT_CFG);
     st = blankState();
-    const sv = location.hash.match(/[#&]s=(\d+)/), pe = location.hash.match(/[#&]p=(\d+)/);
-    if (sv && cfg.servicios[+sv[1]]) st.servicio = +sv[1];
-    if (pe) for (let i = 1; i < Math.min(+pe[1], 6); i++) st.dogs.push({ nombre: '', raza: '', edad: '', tamano: 0 });
-    const ex = location.hash.match(/[#&]e=([\d.]+)/);
-    if (ex) ex[1].split('.').forEach((i) => { if (cfg.extras[+i]) st.extras[+i] = ''; });
-    document.body.classList.add('client');
-    $('#clientIntro').hidden = false;
-    $('#btnGenerar').textContent = 'Ver presupuesto';
+    const q = (k) => { const x = location.hash.match(new RegExp(`[#&]${k}=([^&]+)`)); return x ? decodeURIComponent(x[1]) : null; };
+    if (q('s') && cfg.servicios[+q('s')]) st.servicio = +q('s');
+    if (q('p')) for (let i = 1; i < Math.min(+q('p'), 6); i++) st.dogs.push({ nombre: '', raza: '', edad: '', tamano: 0 });
+    if (q('e')) q('e').split('.').forEach((i) => { if (cfg.extras[+i]) st.extras[+i] = ''; });
+    if (q('q')) st.cantidad = +q('q');
+    if (q('pv') === '0') st.primeraVez = false;
   } else if (m) {
     try {
       const payload = await decodePayload(m[1]);
       clientMode = true;
       cfg = Object.assign(clone(DEFAULT_CFG), payload.c || {});
       st = Object.assign(blankState(), payload.s || {});
-      document.body.classList.add('client');
-      $('#clientIntro').hidden = false;
-      $('#btnGenerar').textContent = 'Ver presupuesto';
     } catch {
-      toast('El link está incompleto. Pedile al cuidador que te lo mande de nuevo.');
+      toast('El link está incompleto. Pedile a tu cuidador que te lo mande de nuevo.');
     }
   }
-  if (!clientMode) {
+  if (clientMode) {
+    document.body.classList.add('client');
+    $('#clientIntro').hidden = false;
+    $('#btnGenerar').textContent = 'Ver presupuesto';
+    cargarDispPublicada();
+  } else {
     const draft = lsGet(LS_DRAFT, null);
     if (draft && draft.st) { st = Object.assign(blankState(), draft.st); currentId = draft.currentId || null; }
-    initCfgUI(); renderHistory();
+    DISP = dispLocal();
+    initCfgUI(); renderHistory(); fillGh(); renderAgenda();
   }
   document.body.classList.add('on-recibo');
   const hoy = new Date();
-  $('#todayLbl').textContent = `${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][hoy.getDay()]} ${hoy.getDate()} de ${MESES[hoy.getMonth()]}`;
+  $('#todayLbl').textContent = `${DIAS_LARGOS[hoy.getDay()]} ${hoy.getDate()} de ${MESES[hoy.getMonth()]}`;
   $('#adminHead').hidden = clientMode;
   checkSetup();
   applyBrand();
   renderForm();
+  refreshPubState();
 }
 init();
