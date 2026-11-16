@@ -1384,7 +1384,7 @@ async function ghPutFile(path, content, message) {
 }
 function configJs(site) {
   const f = new Date().toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
-  return `/*\n * ============================================================\n *  INQUIETOS CANINOS · DATOS DEL NEGOCIO\n *  Publicado desde la app el ${f}.\n *  Para cambiarlo: app → Ajustes → hacé tus cambios → Publicar.\n *  También se puede editar a mano. Qué significa cada campo: README.md\n * ============================================================\n */\nwindow.INQUIETOS = ${JSON.stringify(site, null, 2)};\n`;
+  return `/*\n * ============================================================\n *  INQUIETOS CANINOS · DATOS DEL NEGOCIO\n *  Publicado desde la app el ${f}\n *  Para cambiarlo: app → Ajustes → hacé tus cambios → Publicar.\n *  También se puede editar a mano. Qué significa cada campo: README.md\n * ============================================================\n */\nwindow.INQUIETOS = ${JSON.stringify(site, null, 2)};\n`;
 }
 const dispJson = () => JSON.stringify(dispLocal(), null, 2) + '\n';
 function hash(str) { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return String(h >>> 0); }
