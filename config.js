@@ -1,7 +1,7 @@
 /*
  * ============================================================
  *  INQUIETOS CANINOS · DATOS DEL NEGOCIO
- *  Publicado desde la app el 16/11/26, 2:43 p. m..
+ *  Publicado desde la app el 16/11/26, 2:44 p. m..
  *  Para cambiarlo: app → Ajustes → hacé tus cambios → Publicar.
  *  También se puede editar a mano. Qué significa cada campo: README.md
  * ============================================================
@@ -14,7 +14,7 @@ window.INQUIETOS = {
   "mapa": "",
   "horario": "Todos los días, de 9 a 18 h",
   "responsable": "Juan Ignacio",
-  "alias": "inquietosxroma",
+  "alias": "inquietos.caninos",
   "cbu": "",
   "titular": "Juan Ignacio Rivero",
   "banco": "",
