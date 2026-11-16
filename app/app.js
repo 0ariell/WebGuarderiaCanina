@@ -937,7 +937,7 @@ function pasos() {
 function renderInicio() {
   if (clientMode || !$('#tab-inicio')) return;
   const hoy = new Date(), k0 = iso(hoy);
-  $('#homeDate').textContent = `${DIAS_LARGOS[hoy.getDay()]} ${hoy.getDate()} de ${MESES[hoy.getMonth()]}`;
+  $('#homeDate').textContent = `Hoy es ${DIAS_LARGOS[hoy.getDay()].toLowerCase()} ${hoy.getDate()} de ${MESES[hoy.getMonth()]}`;
   const nombre = String(cfg.responsable || '').trim().split(' ')[0];
   $('#homeHi').textContent = nombre ? `¡Hola, ${nombre}!` : '¡Hola!';
 
@@ -1545,7 +1545,6 @@ async function init() {
     initCfgUI(); renderHistory(); fillGh(); renderAgenda();
   }
   const hoy = new Date();
-  $('#todayLbl').textContent = `${DIAS_LARGOS[hoy.getDay()]} ${hoy.getDate()} de ${MESES[hoy.getMonth()]}`;
   $('#adminHead').hidden = clientMode;
   applyBrand();
   renderForm();

@@ -84,10 +84,10 @@
     return `<article class="svc reveal ${f ? 'featured' : ''}">
       <div class="flex items-start justify-between gap-4">
         <span class="svc-icon">${icon(s.icono || (s.cobro === 'cantidad' ? 'educacion' : 'casa'), '')}</span>
-        ${f ? '<span class="rounded-full bg-white/15 px-3 py-1.5 font-mono text-[.7rem] font-semibold tracking-[.12em]">EL MÁS PEDIDO</span>' : ''}
+        ${f ? '<span class="rounded-full bg-white/15 px-3 py-1.5 text-[.85rem] font-bold">El más pedido</span>' : ''}
       </div>
       <div>
-        <p class="font-mono text-[.72rem] font-semibold tracking-[.14em] ${f ? 'text-white/70' : 'text-cyan-ink'}">${esc(s.categoria.toUpperCase())}</p>
+        <p class="text-[.95rem] font-semibold ${f ? 'text-white/80' : 'text-cyan-ink'}">${esc(s.categoria)}</p>
         <h3 class="mt-1 font-display text-[1.6rem] font-extrabold leading-tight [font-stretch:110%]">${esc(s.nombre)}</h3>
         <p class="mt-2 ${f ? 'text-white/80' : 'text-ink-2'}">${esc(s.bajada || '')}</p>
       </div>
@@ -141,7 +141,7 @@
   if (largas.length) { const t = largas[0].s.descCantidad.slice().sort((a, b) => a.desde - b.desde)[0]; perks.push([`${pct(t.pct)} menos en estadías desde ${t.desde} ${unidadTxt(largas[0].s, t.desde)}`, 'cal']); }
   if (num(C.descPerroAdicional)) perks.push([`${pct(C.descPerroAdicional)} menos desde el segundo perro`, 'paw']);
   if (num(C.seniaPct)) perks.push([`Reservás con una seña del ${pct(C.seniaPct)}`, 'shield']);
-  $('#perks').innerHTML = perks.map(([t, ic]) => `<li class="flex items-center gap-3 font-semibold"><span class="grid h-10 w-10 flex-none place-items-center rounded-full bg-sky text-brand">${icon(ic)}</span>${esc(t)}</li>`).join('');
+  $('#perks').innerHTML = perks.map(([t, ic]) => `<li class="flex items-center gap-3 font-semibold">${icon(ic, 'h-6 w-6 flex-none text-brand')}${esc(t)}</li>`).join('');
 
   if (!precios) { $('#precios').hidden = true; $$('a[href="#precios"]').forEach((a) => (a.href = 'app/#cliente')); }
 
@@ -182,7 +182,7 @@
     const extras = {}; calc.ex.forEach((i) => (extras[i] = ''));
     const r = K.cotizar(C, { servicio: calc.s, cantidad: calc.qty, perros: Array.from({ length: calc.dogs }, () => ({})), extras, primeraVez: calc.pv });
     $('#cServTxt').textContent = s.bajada || '';
-    $('#cQtyLbl').textContent = s.unidadPlural.toUpperCase();
+    $('#cQtyLbl').textContent = s.unidadPlural.charAt(0).toUpperCase() + s.unidadPlural.slice(1);
     $('#cQty').textContent = calc.qty; $('#cDogs').textContent = calc.dogs;
     const range = $('#cRange'); range.value = Math.min(calc.qty, +range.max);
     range.style.setProperty('--p', `${((Math.min(calc.qty, +range.max) - +range.min) / Math.max(1, +range.max - +range.min)) * 100}%`);
@@ -226,7 +226,7 @@
     const box = $('#cTotals');
     if (box.children.length !== r.pagos.length) {
       box.innerHTML = r.pagos.map((t, i) => `<div class="total" data-i="${i}">
-        <span class="flex items-center justify-between gap-2 font-mono text-[.7rem] font-semibold tracking-[.12em] opacity-80"><span>${esc(t.nombre ? t.nombre.toUpperCase() : 'TOTAL')}</span><span class="tag"></span></span>
+        <span class="flex items-center justify-between gap-2 text-[.95rem] font-semibold opacity-90"><span>${esc(t.nombre ? `En ${t.nombre.toLowerCase()}` : 'Total')}</span><span class="tag"></span></span>
         <span class="amt" id="cT${i}">${money(t.total)}</span></div>`).join('');
       box.className = `mt-4 grid gap-3 ${r.pagos.length > 1 ? 'sm:grid-cols-2' : ''}`;
     }
@@ -330,9 +330,8 @@
   /* ---------------- requisitos obligatorios ---------------- */
   const RQ = C.requisitos || {};
   const rqCards = [];
-  const card = (ic, tit, items, extra = '') => `<article class="reveal rounded-[26px] border-[1.5px] border-line bg-surface p-7">
-      <span class="grid h-12 w-12 place-items-center rounded-2xl bg-sky text-brand">${icon(ic, 'h-6 w-6')}</span>
-      <h3 class="mt-5 font-display text-[1.35rem] font-extrabold [font-stretch:108%]">${tit}</h3>
+  const card = (ic, tit, items, extra = '') => `<article class="reveal border-t-[3px] border-brand pt-6">
+      <h3 class="flex items-center gap-3 font-display text-[1.35rem] font-extrabold [font-stretch:108%]">${icon(ic, 'h-6 w-6 flex-none text-brand')}${tit}</h3>
       ${items.length ? `<ul class="mt-4 grid gap-3">${items.map((x) => `<li class="flex items-start gap-2.5">${icon('check', 'mt-0.5 h-5 w-5 flex-none text-cyan')}<span>${esc(x)}</span></li>`).join('')}</ul>` : ''}${extra}
     </article>`;
   if ((RQ.llevar || []).length) rqCards.push(card('paw', 'Es obligatorio traer', RQ.llevar));
@@ -342,9 +341,8 @@
 
   /* ---------------- cómo lo cuidamos ---------------- */
   const vIcons = ['users', 'home', 'heart', 'cam', 'star', 'shield'];
-  $('#values').innerHTML = (C.forma || []).map((v, i) => `<div class="reveal bg-deep p-8 sm:p-9">
-      <span class="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-[#7fd8f0]">${icon(vIcons[i % vIcons.length], 'h-6 w-6')}</span>
-      <h3 class="mt-6 font-display text-[1.35rem] font-extrabold [font-stretch:108%]">${esc(v.titulo)}</h3>
+  $('#values').innerHTML = (C.forma || []).map((v, i) => `<div class="reveal bg-deep px-6 py-7 sm:p-9">
+      <h3 class="flex items-center gap-3 font-display text-[1.35rem] font-extrabold [font-stretch:108%]">${icon(vIcons[i % vIcons.length], 'h-6 w-6 flex-none text-[#7fd8f0]')}${esc(v.titulo)}</h3>
       <p class="mt-2 text-[#b9c8e2]">${esc(v.texto)}</p>
     </div>`).join('');
   if (!(C.forma || []).length) $('#cuidado').hidden = true;
@@ -486,30 +484,25 @@
     tl.to('.h-word', { yPercent: 0, duration: 1.1, stagger: .09 })
       .to('#iDot', { y: 0, duration: .9, ease: 'bounce.out' }, .55)
       .to('.h-in', { y: 0, duration: .9, stagger: .08 }, .2)
-      .from('#heroArt > div:first-child', { scale: .6, opacity: 0, duration: 1.2, ease: 'elastic.out(1,.7)' }, .2)
+      .from('#heroArt > div:first-child', { scale: .8, opacity: 0, duration: 1.2, ease: 'expo.out' }, .2)
       .from('.hero-dog', { y: 80, opacity: 0, duration: 1 }, .45)
       .from('#ball', { y: -420, duration: 1.3, ease: 'bounce.out' }, .7)
       .from('.ticket', { y: 60, rotate: -8, opacity: 0, duration: 1 }, .9)
       .from('.float-b', { x: 40, opacity: 0, duration: .9 }, 1)
-      .from('.float-c', { scale: .6, opacity: 0, duration: .8, ease: 'back.out(2)' }, 1.15);
+      .from('.float-c', { y: 16, opacity: 0, duration: .8, ease: 'expo.out' }, 1.15);
 
-    gsap.to('.float-a', { y: -10, rotate: -1.5, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 2 });
-    gsap.to('.float-b', { y: 12, duration: 3.8, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 2 });
-    gsap.to('.float-c', { y: -8, duration: 2.8, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 2.2 });
-    gsap.to('.hero-ring', { rotate: 360, duration: 90, ease: 'none', repeat: -1 });
-    // la pelotita rebota cada tanto
-    gsap.timeline({ repeat: -1, repeatDelay: 2.6, delay: 3.2 })
-      .to('#ball', { y: -70, duration: .38, ease: 'power2.out' })
-      .to('#ball', { y: 0, duration: .5, ease: 'bounce.out' });
+    // la pelotita vuelve a rebotar solo si la tocás
+    const ball = $('#ball');
+    $('#heroArt').addEventListener('pointerdown', (e) => {
+      if (e.target !== ball || gsap.isTweening(ball)) return;
+      gsap.timeline().to(ball, { y: -90, duration: .38, ease: 'power2.out' }).to(ball, { y: 0, duration: .6, ease: 'bounce.out' });
+    });
 
     if (!ST) return;
     gsap.to('#heroArt', { yPercent: 8, ease: 'none', scrollTrigger: { trigger: '#inicio', start: 'top top', end: 'bottom top', scrub: true } });
 
-    /* aparición de secciones */
-    ST.batch('.reveal', {
-      start: 'top 88%', once: true,
-      onEnter: (els) => gsap.from(els, { y: 46, opacity: 0, duration: .95, ease: 'power3.out', stagger: .09, clearProps: 'transform,opacity' }),
-    });
+    /* la franja avanza con el scroll en vez de girar sola */
+    gsap.fromTo('#marquee', { xPercent: 0 }, { xPercent: -25, ease: 'none', scrollTrigger: { trigger: '#marquee', start: 'top bottom', end: 'bottom top', scrub: .6 } });
     /* la correa que une los pasos */
     const leash = $('#leash');
     if (leash) {
