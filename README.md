@@ -8,10 +8,15 @@ Página web y app de presupuestos para Inquietos Caninos: paseos, guardería de 
 
 ## Cómo se usa día a día
 
-1. **Armás presupuestos** en la app (pestaña Nuevo): tutor, perro, servicio y fechas o cantidad de clases. Sale la imagen para mandar por WhatsApp.
-2. **Cuando te pagan la seña**, en Historial lo marcás como *Señado* o *Pagado*. Ese perro ocupa su lugar en la **Agenda** solo.
-3. En **Agenda** podés sumar reservas a mano o cerrar días (vacaciones, feriados).
-4. Tocás **Publicar** y en 1 o 2 minutos la web muestra tus precios y los días disponibles. Los tutores no pueden elegir días completos.
+La app tiene cinco pestañas:
+
+- **Inicio:** cómo viene el día (perros en casa, lugares libres, quién falta confirmar), los primeros pasos mientras configurás la app y el link de tu página para compartir.
+- **Nuevo:** armás un presupuesto con el tutor, el perro, el servicio y las fechas o la cantidad de clases. Sale la imagen para mandar por WhatsApp.
+- **Presupuestos:** tocás uno y elegís en qué quedó (esperando respuesta, señado, pagado o cancelado), o lo ves, lo corregís, lo repetís con otras fechas o lo borrás. Los señados y pagados ocupan su lugar en la agenda solos. Desde Inicio también se marca con un toque en **Señó**.
+- **Agenda:** cupos por día, reservas cargadas a mano y días cerrados.
+- **Ajustes:** una lista como la del celular, con cada tema en su propia pantalla.
+
+Cuando cambiás algo que se ve en tu página, abajo aparece una barra con el botón **Publicar**. En 1 o 2 minutos la página muestra los cambios.
 
 Los datos de los tutores **nunca se publican**. A la web solo llega cuántos lugares hay ocupados por día.
 
@@ -24,7 +29,7 @@ El botón **Publicar** guarda tus cambios en este repositorio. Para eso necesita
 3. **Repository access** → **Only select repositories** → elegí `WebGuarderiaCanina`.
 4. **Permissions → Repository permissions → Contents** → **Read and write**.
 5. **Generate token**, copiá la clave.
-6. En la app: **Ajustes → Conexión con la web (GitHub)** → pegala → **Guardar y probar**.
+6. En la app: **Ajustes → Conexión con la página** → pegala → **Guardar y probar**.
 
 La clave queda guardada solo en tu celular y solo sirve para este repositorio. Si la perdés o vence, creá otra igual.
 
@@ -79,7 +84,7 @@ La web y la app calculan con el mismo motor (`assets/cotizador.js`), así el pre
 |---|---|---|---|---|
 | Página en compu | 99 | 100 | 100 | 100 |
 | Página en celular | 87* | 100 | 100 | 100 |
-| App | 95 | 100 | 100 | no se indexa a propósito |
+| App | 94 | 100 | 100 | no se indexa a propósito |
 
 \* Simulando 4G lenta. Con buena conexión, el contenido principal aparece en menos de un segundo.
 

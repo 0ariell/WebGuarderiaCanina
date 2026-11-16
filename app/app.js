@@ -192,6 +192,11 @@ function ask(msg, yes = 'Sí') {
   });
 }
 
+/* cantidad que se cobra sola de cada extra (se muestra como sugerencia) */
+function extraAuto(e) {
+  const r = calc(cfg, st), perros = st.dogs.length;
+  return { unico: 1, dia: r.qty, perro: perros, perroDia: perros * r.qty }[e.cobro] || 1;
+}
 function renderForm() {
   // servicios agrupados por categoría
   if (!cfg.servicios[st.servicio]) st.servicio = 0;
@@ -222,7 +227,7 @@ function renderForm() {
     <label class="extra" for="ex${i}">
       <input type="checkbox" id="ex${i}" data-extra="${i}" ${i in st.extras ? 'checked' : ''}>
       <span class="name">${esc(e.nombre)}<span class="price">${money(e.precio)} ${Cotizador.COBRO_EXTRA[e.cobro]}</span></span>
-      <input type="number" min="0" step="1" inputmode="numeric" data-extraq="${i}" placeholder="auto" value="${esc(st.extras[i] ?? '')}" ${i in st.extras ? '' : 'disabled'} aria-label="Cantidad de ${esc(e.nombre)}">
+      <input type="number" min="0" step="1" inputmode="numeric" data-extraq="${i}" placeholder="${extraAuto(e)}" value="${esc(st.extras[i] ?? '')}" ${i in st.extras ? '' : 'disabled'} aria-label="Cantidad de ${esc(e.nombre)}, se calcula sola: ${extraAuto(e)}">
     </label>`).join('');
   const anyExtra = extrasN.some((e) => !clientMode || e.web);
   $('#noExtras').hidden = anyExtra;
@@ -817,11 +822,20 @@ const ESTADOS = [['enviado', 'Enviado'], ['senado', 'Señado'], ['pagado', 'Paga
 let histFiltro = 'todos';
 const estadoDe = (h) => h.estado || (num(h.s.pagado) > 0 ? 'senado' : 'enviado');
 const norm = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const ESTADO_INFO = {
+  enviado: ['Esperando respuesta', 'Le mandaste el presupuesto y todavía no confirmó.'],
+  senado: ['Señado', 'Reservó con seña. Ocupa su lugar en la agenda.'],
+  pagado: ['Pagado', 'Pagó todo. Ocupa su lugar en la agenda.'],
+  cancelado: ['Cancelado', 'No va. Libera el lugar.'],
+};
+const cuandoDe = (h, r) => (r.serv.cobro === 'cantidad' ? `${r.qty} ${r.qty === 1 ? r.unidad : r.unidadPlural}`
+  : h.s.fechaIn ? (h.s.fechaOut && h.s.fechaOut !== h.s.fechaIn ? `${shortDate(h.s.fechaIn)} → ${shortDate(h.s.fechaOut)}` : shortDate(h.s.fechaIn)) : 'sin fechas');
 function renderHistory() {
   const list = lsGet(LS_HIST, []);
   const box = $('#historyList');
   $('.hist-tools').hidden = list.length < 2;
-  if (!list.length) { box.innerHTML = '<p class="empty" style="padding:18px 16px">Todavía no hiciste presupuestos. Cuando generes uno, aparece acá.</p>'; $('#histSum').textContent = ''; return; }
+  $$('#histF button').forEach((x) => x.classList.toggle('on', x.dataset.f === histFiltro));
+  if (!list.length) { box.innerHTML = `<div class="empty-state">${icon('ticket')}<p><b>Todavía no hiciste presupuestos.</b> Cuando generes uno, aparece acá.</p><button type="button" class="btn btn-primary btn-sm" data-go="recibo">Hacer el primero</button></div>`; $('#histSum').textContent = ''; return; }
   const q = norm($('#histQ').value.trim());
   const rows = list.filter((h) => {
     if (histFiltro !== 'todos' && estadoDe(h) !== histFiltro) return false;
@@ -829,93 +843,176 @@ function renderHistory() {
     return norm([h.numero, h.s.cliente, h.s.telCliente, ...(h.s.dogs || []).map((d) => d.nombre)].join(' ')).includes(q);
   });
   const pend = list.filter((h) => estadoDe(h) === 'enviado').length;
-  $('#histSum').textContent = `${list.length} en total${pend ? ` · ${pend} sin confirmar` : ''}${rows.length !== list.length ? ` · mostrando ${rows.length}` : ''}`;
+  $('#histSum').textContent = `${list.length} en total${pend ? ` · ${pend} esperando respuesta` : ''}${rows.length !== list.length ? ` · mostrando ${rows.length}` : ''}`;
   if (!rows.length) { box.innerHTML = '<p class="empty" style="padding:18px 16px">No hay presupuestos que coincidan con la búsqueda.</p>'; return; }
   box.innerHTML = rows.map((h) => {
     const r = calc(h.c, h.s, true), e = estadoDe(h);
-    const cuando = r.serv.cobro === 'cantidad' ? `${r.qty} ${r.qty === 1 ? r.unidad : r.unidadPlural}` : (h.s.fechaIn ? fmtDate(h.s.fechaIn).slice(0, 5) : h.fecha);
-    return `<div class="hist ${e === 'cancelado' ? 'cancelado' : ''}">
-      <div class="info">
-        <div class="t"><span class="n">${esc(h.numero)}</span><span class="d">${esc(nombresPerros(h.s).join(', '))}</span></div>
-        <div class="s">${esc(h.s.cliente)} · ${esc(cuando)} · ${money(Math.min(...r.pagos.map((p) => p.total)))}</div>
-        <div class="meta"><label class="sr" for="est-${h.id}">Estado de ${esc(h.numero)}</label>
-          <select id="est-${h.id}" class="estado e-${e}" data-hest="${h.id}">${ESTADOS.map(([v, t]) => `<option value="${v}" ${v === e ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-      </div>
-      <div class="acts">
-        <button class="iconbtn" data-hview="${h.id}" aria-label="Ver ${esc(h.numero)}">${icon('eye')}</button>
-        <button class="iconbtn" data-hedit="${h.id}" aria-label="Editar ${esc(h.numero)}">${icon('edit')}</button>
-        <button class="iconbtn" data-hdup="${h.id}" aria-label="Duplicar ${esc(h.numero)} con fechas nuevas">${icon('copy')}</button>
-        <button class="iconbtn del" data-hdel="${h.id}" aria-label="Borrar ${esc(h.numero)}">${icon('trash')}</button>
-      </div>
-    </div>`;
+    return `<button type="button" class="hrow ${e}" data-hopen="${h.id}">
+      <span class="hr-main">
+        <span class="hr-dog">${esc(nombresPerros(h.s).join(', '))}</span>
+        <span class="hr-sub">${esc(h.s.cliente || 'Sin nombre')} · ${esc(r.serv.nombre)} · ${esc(cuandoDe(h, r))}</span>
+      </span>
+      <span class="hr-side">
+        <span class="hr-amt">${money(Math.min(...r.pagos.map((p) => p.total)))}</span>
+        <span class="chip e-${e}">${ESTADO_INFO[e][0]}</span>
+      </span>
+    </button>`;
   }).join('');
 }
 $('#histQ').addEventListener('input', renderHistory);
 $('#histF').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
-  histFiltro = b.dataset.f; $$('#histF button').forEach((x) => x.classList.toggle('on', x === b)); renderHistory();
+  histFiltro = b.dataset.f; renderHistory();
 });
-$('#historyList').addEventListener('change', (e) => {
-  const sel = e.target.closest('[data-hest]'); if (!sel) return;
-  const list = lsGet(LS_HIST, []), h = list.find((x) => x.id === sel.dataset.hest); if (!h) return;
-  h.estado = sel.value; lsSet(LS_HIST, list); renderHistory(); refreshDisp();
-  const ocupa = ['senado', 'pagado'].includes(sel.value) && servDe(h.c, h.s.servicio).ocupaCupo;
-  toast(`${h.numero}: ${ESTADOS.find((x) => x[0] === sel.value)[1].toLowerCase()}.${ocupa ? ' Ya ocupa su lugar en la agenda.' : ''}`);
-});
-$('#historyList').addEventListener('click', async (e) => {
-  const b = e.target.closest('button'); if (!b) return;
-  const list = lsGet(LS_HIST, []);
-  const id = b.dataset.hview || b.dataset.hedit || b.dataset.hdel || b.dataset.hdup;
-  const h = list.find((x) => x.id === id); if (!h) return;
-  if (b.dataset.hview) await generate(h);
-  else if (b.dataset.hedit) {
-    st = Object.assign(blankState(), clone(h.s)); currentId = h.id; calView = null; renderForm(); showTab('recibo');
-    toast(`Editando ${h.numero}. Al generar se actualiza.`);
-  } else if (b.dataset.hdup) {
-    st = Object.assign(blankState(), clone(h.s), { fechaIn: '', fechaOut: '', excluidos: [], pagado: '', primeraVez: false });
+
+/* hoja de acciones: todo con nombre, nada de íconos sueltos */
+let hsId = null;
+function cambiarEstado(id, estado) {
+  const list = lsGet(LS_HIST, []), h = list.find((x) => x.id === id); if (!h) return;
+  h.estado = estado; lsSet(LS_HIST, list); renderHistory(); refreshDisp(); renderInicio();
+  const ocupa = ['senado', 'pagado'].includes(estado) && servDe(h.c, h.s.servicio).ocupaCupo;
+  toast(`${nombresPerros(h.s).join(', ')}: ${ESTADO_INFO[estado][0].toLowerCase()}.${ocupa ? ' Ya ocupa su lugar en la agenda.' : ''}`);
+}
+function openHSheet(id) {
+  const h = lsGet(LS_HIST, []).find((x) => x.id === id); if (!h) return;
+  hsId = id;
+  const r = calc(h.c, h.s, true), e = estadoDe(h);
+  $('#hsTit').textContent = nombresPerros(h.s).join(', ');
+  $('#hsSub').textContent = `${h.numero} · ${h.s.cliente || 'Sin nombre'} · ${r.serv.nombre} · ${cuandoDe(h, r)} · ${money(Math.min(...r.pagos.map((p) => p.total)))}`;
+  $('#hsEst').innerHTML = ESTADOS.map(([v]) => `<button type="button" role="radio" aria-checked="${v === e}" class="est e-${v}" data-est="${v}"><b>${ESTADO_INFO[v][0]}</b><small>${ESTADO_INFO[v][1]}</small></button>`).join('');
+  const tel = h.s.telCliente;
+  $('#hsActs').innerHTML = [
+    ['ver', 'eye', 'Ver la imagen y compartirla'],
+    ...(tel ? [['wa', 'wa', `Escribirle a ${esc(h.s.cliente.split(' ')[0] || 'el tutor')} por WhatsApp`]] : []),
+    ['editar', 'edit', 'Corregir este presupuesto'],
+    ['repetir', 'copy', 'Repetir con otras fechas'],
+    ['borrar', 'trash', 'Borrar'],
+  ].map(([a, ic, t]) => `<button type="button" class="act ${a === 'borrar' ? 'danger' : ''}" data-act="${a}">${icon(ic)}<span>${t}</span></button>`).join('');
+  $('#hSheet').hidden = false; document.body.style.overflow = 'hidden';
+}
+function closeHSheet() { $('#hSheet').hidden = true; document.body.style.overflow = ''; hsId = null; }
+$('#historyList').addEventListener('click', (e) => { const b = e.target.closest('[data-hopen]'); if (b) openHSheet(b.dataset.hopen); });
+$('#hsClose').addEventListener('click', closeHSheet);
+$('#hSheet').addEventListener('click', async (e) => {
+  if (e.target.id === 'hSheet') { closeHSheet(); return; }
+  const est = e.target.closest('[data-est]');
+  if (est) { cambiarEstado(hsId, est.dataset.est); openHSheet(hsId); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const list = lsGet(LS_HIST, []), h = list.find((x) => x.id === hsId); if (!h) return;
+  const act = b.dataset.act;
+  if (act === 'ver') { closeHSheet(); await generate(h); }
+  else if (act === 'wa') { window.open(waLink(h.s.telCliente, summaryText({ c: h.c, s: h.s, r: calc(h.c, h.s, true), numero: h.numero })), '_blank', 'noopener'); }
+  else if (act === 'editar') {
+    closeHSheet(); st = Object.assign(blankState(), clone(h.s)); currentId = h.id; calView = null; renderForm(); showTab('recibo');
+    toast(`Corregí lo que necesites y tocá Crear para actualizar ${h.numero}.`);
+  } else if (act === 'repetir') {
+    closeHSheet(); st = Object.assign(blankState(), clone(h.s), { fechaIn: '', fechaOut: '', excluidos: [], pagado: '', primeraVez: false });
     currentId = null; calView = null; renderForm(); showTab('recibo');
     toast('Copiado con los mismos datos. Elegí las fechas nuevas.');
-  } else if (await ask(`¿Borrar ${h.numero}?`, 'Borrar')) {
-    lsSet(LS_HIST, list.filter((x) => x.id !== id)); if (currentId === id) currentId = null; renderHistory(); refreshDisp();
+  } else if (act === 'borrar') {
+    if (!(await ask(`¿Borrar el presupuesto de ${nombresPerros(h.s).join(', ')}? No se puede deshacer.`, 'Borrar'))) return;
+    closeHSheet(); lsSet(LS_HIST, list.filter((x) => x.id !== h.id)); if (currentId === h.id) currentId = null; renderHistory(); refreshDisp(); renderInicio();
   }
 });
 
-/* ======================= LINK PARA TUTORES ======================= */
-function publicCfg() { const c = clone(cfg); delete c.nextNumero; return c; }
+/* ======================= INICIO ======================= */
+const webUrl = () => new URL('../', location.href).href;
+const formUrl = () => new URL('#cliente', location.href.split('#')[0]).href;
+async function copiar(txt, msg) {
+  try { await navigator.clipboard.writeText(txt); } catch {
+    const t = document.createElement('textarea'); t.value = txt; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
+  }
+  toast(msg);
+}
+function pasos() {
+  const g = ghCfg(), pub = lsGet(LS_PUB, null);
+  return [
+    { ok: !!(String(cfg.responsable || '').trim() && String(cfg.telefono || '').trim()), t: 'Cargá tu nombre y tu WhatsApp', d: 'Salen en cada presupuesto.', go: 'negocio' },
+    { ok: !!(String(cfg.alias || '').trim() || String(cfg.cbu || '').trim()), t: 'Cargá tu alias o CBU', d: 'Para que te transfieran la seña.', go: 'cobros' },
+    { ok: !!lsGet('ic.vistoPrecios', false), t: 'Revisá tus precios', d: 'Los que vienen cargados son de ejemplo.', go: 'servicios' },
+    { ok: !!g.token, t: 'Conectá la app con tu página', d: 'Se hace una sola vez, en 3 minutos.', go: 'conexion' },
+    { ok: !!(g.token && pub && pub.sig === pubSig()), t: 'Publicá tus cambios', d: 'Así tu página muestra tus precios y días libres.', go: 'publicar' },
+  ];
+}
+function renderInicio() {
+  if (clientMode || !$('#tab-inicio')) return;
+  const hoy = new Date(), k0 = iso(hoy);
+  $('#homeDate').textContent = `${DIAS_LARGOS[hoy.getDay()]} ${hoy.getDate()} de ${MESES[hoy.getMonth()]}`;
+  const nombre = String(cfg.responsable || '').trim().split(' ')[0];
+  $('#homeHi').textContent = nombre ? `¡Hola, ${nombre}!` : '¡Hola!';
 
-$('#btnMakeLink').addEventListener('click', async () => {
-  const payload = { v: 2, c: publicCfg() };
-  if ($('#linkPrefill').checked) { const p = clone(st); delete p.descExtra; delete p.pagado; payload.s = p; }
-  const url = `${location.origin}${location.pathname}#c=${await encodePayload(payload)}`;
-  $('#linkText').value = url; $('#linkOut').hidden = false;
-  $('#btnWaLink').href = `https://wa.me/?text=${encodeURIComponent(`¡Hola! Completá acá los datos de tu perro y las fechas, y te sale el presupuesto al instante:\n${url}`)}`;
-  $('#linkOut').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // primeros pasos
+  const P = pasos(), hechos = P.filter((x) => x.ok).length;
+  $('#hSteps').hidden = hechos === P.length;
+  $('#hStepsN').textContent = `${hechos} de ${P.length}`;
+  $('#hStepsBar').style.width = `${(hechos / P.length) * 100}%`;
+  const primero = P.findIndex((x) => !x.ok);
+  $('#hStepsList').innerHTML = P.map((x, i) => `<li class="${x.ok ? 'ok' : ''} ${i === primero ? 'now' : ''}">
+      <button type="button" data-paso="${x.go}" ${x.ok && x.go !== 'servicios' ? 'tabindex="-1"' : ''}>
+        <span class="sl-n">${x.ok ? icon('check') : i + 1}</span>
+        <span class="sl-t"><b>${x.t}</b><small>${x.ok ? 'Listo' : x.d}</small></span>
+        ${x.ok ? '' : icon('chev', 'ic sl-go')}
+      </button></li>`).join('');
+
+  // números del día
+  const D = DISP || dispLocal(), e = Cotizador.estadoDia(D, k0);
+  const list = lsGet(LS_HIST, []);
+  const conf = list.filter((h) => ['senado', 'pagado'].includes(estadoDe(h)));
+  const enCasa = conf.filter((h) => Cotizador.ocupacion([Object.assign({}, h, { estado: 'senado' })])[k0]);
+  const pend = list.filter((h) => estadoDe(h) === 'enviado');
+  const stat = (n, t, cls = '', go = '', extra = '') => `<button type="button" class="stat ${cls}" ${go ? `data-go="${go}"` : ''} ${extra}><b>${n}</b><span>${t}</span></button>`;
+  $('#hStats').innerHTML = stat(enCasa.reduce((a, h) => a + (h.s.dogs || []).length, 0), 'perros hoy', '', 'agenda')
+    + stat(e.cerrado ? '—' : e.libres, e.cerrado ? 'cerrado hoy' : `lugares libres hoy`, e.lleno ? 'warn' : '', 'agenda')
+    + stat(pend.length, 'esperando respuesta', pend.length ? 'attn' : '', 'historial', 'data-filtro="enviado"');
+
+  // en casa y próximos ingresos (14 días)
+  const lim = new Date(hoy); lim.setDate(lim.getDate() + 14); const kLim = iso(lim);
+  const prox = conf.filter((h) => h.s.fechaIn && ((h.s.fechaOut || h.s.fechaIn) >= k0) && h.s.fechaIn <= kLim)
+    .sort((a, b) => (a.s.fechaIn < b.s.fechaIn ? -1 : 1)).slice(0, 6);
+  $('#hTodayList').innerHTML = prox.length ? prox.map((h) => {
+    const enc = h.s.fechaIn <= k0;
+    const cuando = enc ? `en casa hasta el ${shortDate(h.s.fechaOut || h.s.fechaIn)}` : `llega el ${shortDate(h.s.fechaIn)}${h.s.horaIn ? ` a las ${h.s.horaIn}` : ''}`;
+    return `<li><button type="button" class="prow" data-hopen="${h.id}"><span class="pr-badge ${enc ? 'in' : ''}">${enc ? 'Hoy' : shortDate(h.s.fechaIn).split(' ')[1]}</span><span class="pr-t"><b>${esc(nombresPerros(h.s).join(', '))}</b><small>${esc(cuando)} · ${esc(h.s.cliente || '')}</small></span>${icon('chev', 'ic pr-go')}</button></li>`;
+  }).join('') : '<li class="pempty">No hay perros confirmados para los próximos 14 días.</li>';
+
+  // esperando respuesta
+  $('#hPend').hidden = !pend.length;
+  $('#hPendList').innerHTML = pend.slice(0, 4).map((h) => {
+    const r = calc(h.c, h.s, true);
+    return `<li class="pend"><button type="button" class="prow" data-hopen="${h.id}"><span class="pr-t"><b>${esc(nombresPerros(h.s).join(', '))}</b><small>${esc(h.s.cliente || '')} · ${esc(cuandoDe(h, r))}</small></span></button>
+      <button type="button" class="btn btn-sm btn-ok" data-senio="${h.id}">${icon('check')}Señó</button></li>`;
+  }).join('');
+
+  // compartir
+  $('#hUrl').textContent = webUrl().replace(/^https?:\/\//, '');
+  $('#hShareWa').href = `https://wa.me/?text=${encodeURIComponent(`¡Hola! Acá podés ver los precios, los días disponibles y armar el presupuesto para tu perro: ${webUrl()}`)}`;
+}
+$('#tab-inicio').addEventListener('click', (e) => {
+  const paso = e.target.closest('[data-paso]');
+  if (paso) { if (paso.dataset.paso === 'publicar') publicar(); else { showTab('ajustes'); openPage(paso.dataset.paso); } return; }
+  const s1 = e.target.closest('[data-senio]');
+  if (s1) { cambiarEstado(s1.dataset.senio, 'senado'); return; }
+  const o = e.target.closest('[data-hopen]');
+  if (o) openHSheet(o.dataset.hopen);
 });
-$('#btnCopyLink').addEventListener('click', async () => {
-  const t = $('#linkText');
-  try { await navigator.clipboard.writeText(t.value); } catch { t.select(); document.execCommand('copy'); }
-  toast('Link copiado.');
-});
-$('#btnShareLink').addEventListener('click', async () => {
-  const url = $('#linkText').value;
-  if (navigator.share) { try { await navigator.share({ title: cfg.negocio, text: 'Completá los datos de tu perro para el presupuesto', url }); } catch { /* cancelado */ } }
-  else $('#btnCopyLink').click();
+$('#hShareCopy').addEventListener('click', () => copiar(webUrl(), 'Link de tu página copiado.'));
+$('#hShareForm').addEventListener('click', () => copiar(formUrl(), 'Link del formulario copiado.'));
+/* atajos [data-go] a otras pestañas, desde cualquier lugar */
+document.addEventListener('click', (e) => {
+  const g = e.target.closest('[data-go]'); if (!g) return;
+  if (g.dataset.filtro) histFiltro = g.dataset.filtro;
+  showTab(g.dataset.go);
+  if (g.dataset.go === 'historial') renderHistory();
 });
 
 /* ======================= AJUSTES ======================= */
-function saveCfg() { lsSet(LS_CFG, cfg); lsSet(LS_BASE, DEFAULT_CFG); applyBrand(); checkSetup(); refreshPubState(); }
+function saveCfg() { lsSet(LS_CFG, cfg); lsSet(LS_BASE, DEFAULT_CFG); applyBrand(); refreshPubState(); refreshSums(); }
 function faltantes() {
   const f = [];
-  if (!String(cfg.telefono || '').trim()) f.push(['tu WhatsApp', '#c-tel']);
-  if (!String(cfg.alias || '').trim() && !String(cfg.cbu || '').trim()) f.push(['el alias o CBU para la seña', '#c-alias']);
-  if (!String(cfg.responsable || '').trim()) f.push(['tu nombre', '#c-resp']);
+  if (!String(cfg.telefono || '').trim()) f.push(['tu WhatsApp', 'negocio', '#c-tel']);
+  if (!String(cfg.alias || '').trim() && !String(cfg.cbu || '').trim()) f.push(['el alias o CBU para la seña', 'cobros', '#c-alias']);
+  if (!String(cfg.responsable || '').trim()) f.push(['tu nombre', 'negocio', '#c-resp']);
   return f;
-}
-function checkSetup() {
-  const box = $('#setup'); if (!box) return;
-  const f = faltantes(), later = lsGet('ic.setupLater', 0);
-  box.hidden = clientMode || !f.length || Date.now() - later < 3 * 864e5;
-  if (f.length) $('#setupTxt').textContent = `Así tus presupuestos salen completos: ${f.map((x) => x[0]).join(', ').replace(/, ([^,]*)$/, ' y $1')}.`;
 }
 function applyBrand() {
   const name = cfg.negocio || 'Inquietos Caninos';
@@ -1130,18 +1227,54 @@ $('#fileImport').addEventListener('change', async (e) => {
   catch { toast('Ese archivo no es una copia de ajustes válida.'); }
   e.target.value = '';
 });
-function initCfgUI() { fillCfgForm(); Object.keys(EDITORS).forEach(renderEditor); renderSrv(); }
+function initCfgUI() { fillCfgForm(); Object.keys(EDITORS).forEach(renderEditor); renderSrv(); refreshSums(); }
 
-$('#setupGo').addEventListener('click', () => {
-  const f = faltantes(); showTab('ajustes');
-  const g = $('#cfgForm details.grp'); if (g) g.open = true;
-  if (f.length) setTimeout(() => { const el = $(f[0][1]); el.scrollIntoView({ block: 'center' }); el.focus({ preventScroll: true }); }, 60);
-});
-$('#setupLater').addEventListener('click', () => { lsSet('ic.setupLater', Date.now()); checkSetup(); });
+/* resumen de cada sección en la lista de Ajustes */
+function refreshSums() {
+  if (clientMode || !$('#setHome')) return;
+  const n = Cotizador.config(cfg), g = ghCfg(), pub = lsGet(LS_PUB, null);
+  const minP = Math.min(...n.servicios.map((x) => x.precio));
+  const S = {
+    negocio: [cfg.negocio, cfg.telefono ? `WhatsApp ${cfg.telefono}` : 'Falta tu WhatsApp'].filter(Boolean).join(' · '),
+    cobros: [cfg.alias ? `Alias ${cfg.alias}` : (cfg.cbu ? 'CBU cargado' : 'Falta el alias o CBU'), `seña ${pctTxt(n.seniaPct)}`].join(' · '),
+    servicios: `${n.servicios.length} ${n.servicios.length === 1 ? 'servicio' : 'servicios'}${isFinite(minP) ? ` · desde ${money(minP)}` : ''}`,
+    extras: n.extras.length ? n.extras.map((x) => x.nombre.replace(/\s*\(.*\)$/, '')).join(', ') : 'Ninguno',
+    descuentos: [n.descPerroAdicional ? `${pctTxt(n.descPerroAdicional)} segundo perro` : '', n.fechasEspeciales.length ? `${n.fechasEspeciales.length} fechas especiales` : '', n.redondeo ? `redondeo a ${money(n.redondeo)}` : ''].filter(Boolean).join(' · ') || 'Sin descuentos generales',
+    adaptacion: n.adaptacion.activa ? (n.adaptacion.fijo ? `${money(n.adaptacion.fijo)} · obligatoria` : `${n.adaptacion.pct === 50 ? 'Medio día' : pctTxt(n.adaptacion.pct) + ' de un día'} · obligatoria`) : 'No se cobra',
+    presupuesto: `Válido ${cfg.validez || 0} días · próximo N° ${String(cfg.nextNumero).padStart(4, '0')}`,
+    web: cfg.mostrarPrecios !== false ? 'Precios visibles' + (cfg.aviso && cfg.aviso.texto ? ' · con aviso' : '') : 'Sin precios',
+    conexion: g.token ? (pub && pub.sig === pubSig() ? 'Conectada · todo publicado' : 'Conectada · hay cambios sin publicar') : 'Sin conectar',
+    respaldo: 'Guardar o cargar tus ajustes',
+  };
+  Object.entries(S).forEach(([k, v]) => { const el = $(`[data-sum="${k}"]`); if (el) el.textContent = v; });
+  const c = $('[data-open="conexion"]'); if (c) c.classList.toggle('attn', !g.token);
+}
+let pageOpen = null;
+function openPage(key, push = true) {
+  const pg = $(`.setpage[data-page="${key}"]`); if (!pg) return;
+  $('#setHome').hidden = true;
+  $$('.setpage').forEach((x) => (x.hidden = x !== pg));
+  pageOpen = key;
+  if (key === 'servicios' && !lsGet('ic.vistoPrecios', false)) { lsSet('ic.vistoPrecios', true); renderInicio(); }
+  if (push) history.pushState({ page: key }, '');
+  window.scrollTo(0, 0);
+  const h = pg.querySelector('h2'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+}
+function closePage(fromPop = false) {
+  if (!pageOpen) return;
+  const was = pageOpen; pageOpen = null;
+  $$('.setpage').forEach((x) => (x.hidden = true));
+  $('#setHome').hidden = false; refreshSums();
+  if (!fromPop && history.state && history.state.page) history.back();
+  const b = $(`[data-open="${was}"]`); if (b) b.focus({ preventScroll: true });
+}
+$('#setHome').addEventListener('click', (e) => { const b = e.target.closest('[data-open]'); if (b) openPage(b.dataset.open); });
+document.addEventListener('click', (e) => { if (e.target.closest('[data-back]')) closePage(); });
+window.addEventListener('popstate', () => { if (pageOpen) closePage(true); });
 
 /* ======================= AGENDA Y CUPOS ======================= */
 let agView = null, agSel = null;
-function refreshDisp() { if (!clientMode) { DISP = dispLocal(); renderAgenda(); renderForm(); refreshPubState(); } }
+function refreshDisp() { if (!clientMode) { DISP = dispLocal(); renderAgenda(); renderForm(); refreshPubState(); renderInicio(); } }
 function entradasDelDia(k) {
   return lsGet(LS_HIST, []).filter((h) => ['senado', 'pagado'].includes(h.estado) && Cotizador.ocupacion([h])[k]);
 }
@@ -1217,7 +1350,7 @@ function b64utf8(str) { const bytes = new TextEncoder().encode(str); let s = '';
 function unb64utf8(str) { const bin = atob(String(str).replace(/\s/g, '')); return new TextDecoder().decode(Uint8Array.from(bin, (ch) => ch.charCodeAt(0))); }
 function ghErr(status) {
   const m = {
-    401: 'La clave de GitHub no es válida o venció. Creá una nueva en Ajustes → Conexión con la web.',
+    401: 'La clave de GitHub no es válida o venció. Creá una nueva en Ajustes → Conexión con la página.',
     403: 'La clave no tiene permiso para escribir. Revisá que en Contents diga "Read and write".',
     404: 'No encuentro el repositorio, o la clave no tiene acceso a él. Revisá el nombre y que lo hayas elegido al crear la clave.',
     409: 'Hubo otro cambio al mismo tiempo. Probá publicar de nuevo.',
@@ -1259,25 +1392,29 @@ const pubSig = () => hash(JSON.stringify(toSite(cfg)) + dispJson());
 function refreshPubState() {
   if (clientMode) return;
   const g = ghCfg(), pub = lsGet(LS_PUB, null);
-  let txt, cls = '';
-  if (!g.token) { txt = 'Para que la web muestre tus precios y cupos, conectá la app con GitHub (Ajustes → Conexión con la web).'; cls = 'warn'; }
-  else if (!pub || pub.sig !== pubSig()) { txt = 'Tenés cambios sin publicar. Tocá Publicar para que la web los muestre.'; cls = 'warn'; }
-  else txt = `Todo publicado · ${new Date(pub.at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}`;
-  $$('[data-pubstate]').forEach((el) => { el.textContent = txt; el.className = 'setup-d ' + cls; });
-  $$('[data-pubcard]').forEach((el) => el.classList.toggle('pending', cls === 'warn'));
+  const pendiente = !pub || pub.sig !== pubSig();
+  const bar = $('#pubbar');
+  const tab = ($('#tabs button.active') || {}).dataset;
+  // no se muestra mientras armás un presupuesto (ahí manda la barra del total)
+  bar.hidden = !pendiente || (tab && tab.tab === 'recibo') || !lsGet(LS_CFG, null) && !lsGet(LS_AG, null);
+  $('#pubbarTxt').textContent = g.token ? 'Tenés cambios que tu página todavía no muestra' : 'Tu página todavía no muestra tus cambios';
+  $('#pubbarBtn').lastChild.textContent = g.token ? 'Publicar' : 'Conectar';
+  document.body.classList.toggle('has-pubbar', !bar.hidden);
+  refreshSums(); if ($('#hSteps')) renderInicio();
 }
+$('#pubbarBtn').addEventListener('click', () => { if (ghCfg().token) publicar(); else { showTab('ajustes'); openPage('conexion'); } });
 let publishing = false;
 async function publicar() {
   if (publishing) return;
   const g = ghCfg();
   if (!g.token) {
-    showTab('ajustes'); const d = $('#grpGh'); d.open = true;
-    setTimeout(() => { d.scrollIntoView({ block: 'start' }); $('#gh-tok').focus({ preventScroll: true }); }, 60);
-    toast('Primero conectá la app con GitHub. Te dejo los pasos.');
+    showTab('ajustes'); openPage('conexion');
+    setTimeout(() => $('#gh-tok').focus({ preventScroll: true }), 80);
+    toast('Primero conectá la app con tu página. Te dejo los pasos.');
     return;
   }
   publishing = true;
-  const btns = $$('[data-publicar]'); btns.forEach((b) => { b.disabled = true; b.dataset.label = b.lastChild.textContent; b.lastChild.textContent = 'Publicando…'; });
+  const btns = [$('#pubbarBtn')]; btns.forEach((b) => { b.disabled = true; b.dataset.label = b.lastChild.textContent; b.lastChild.textContent = 'Publicando…'; });
   try {
     const r1 = await ghPutFile('config.js', configJs(toSite(cfg)), 'Precios y textos actualizados desde la app');
     const r2 = await ghPutFile('disponibilidad.json', dispJson(), 'Disponibilidad actualizada desde la app');
@@ -1285,14 +1422,12 @@ async function publicar() {
     toast(r1 === 'igual' && r2 === 'igual' ? 'Ya estaba todo publicado.' : 'Publicado. La web se actualiza en 1 o 2 minutos.');
   } catch (e) {
     toast(e.message);
-    $$('[data-pubstate]').forEach((el) => { el.textContent = e.message; el.className = 'setup-d warn'; });
     publishing = false; btns.forEach((b) => { b.disabled = false; b.lastChild.textContent = b.dataset.label; });
     return;
   }
   publishing = false; btns.forEach((b) => { b.disabled = false; b.lastChild.textContent = b.dataset.label; });
   refreshPubState();
 }
-document.addEventListener('click', (e) => { if (e.target.closest('[data-publicar]')) publicar(); });
 
 function fillGh() {
   const g = ghCfg();
@@ -1345,9 +1480,16 @@ function showTab(name) {
   $$('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + name));
   document.body.classList.toggle('on-recibo', name === 'recibo');
   if (name === 'agenda') refreshDisp();
+  if (name === 'inicio') renderInicio();
+  if (name !== 'ajustes' && pageOpen) closePage();
+  refreshPubState();
   window.scrollTo(0, 0);
 }
-$('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) showTab(b.dataset.tab); });
+$('#tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.tab === 'ajustes' && pageOpen) closePage();   // tocar Ajustes de nuevo vuelve a la lista
+  showTab(b.dataset.tab);
+});
 
 let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; if (!clientMode) $('#installBtn').hidden = false; });
@@ -1402,13 +1544,13 @@ async function init() {
     DISP = dispLocal();
     initCfgUI(); renderHistory(); fillGh(); renderAgenda();
   }
-  document.body.classList.add('on-recibo');
   const hoy = new Date();
   $('#todayLbl').textContent = `${DIAS_LARGOS[hoy.getDay()]} ${hoy.getDate()} de ${MESES[hoy.getMonth()]}`;
   $('#adminHead').hidden = clientMode;
-  checkSetup();
   applyBrand();
   renderForm();
+  if (clientMode) showTab('recibo');
+  else { const go = location.hash === '#nuevo' ? 'recibo' : 'inicio'; showTab(go); renderInicio(); }
   refreshPubState();
 }
 init();
